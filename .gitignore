@@ -1,0 +1,19 @@
+# Node
+client/node_modules/
+client/dist/
+
+# Python
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+*.py[cod]
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local SQLite databases
+*.db
+*.sqlite
+*.sqlite3
