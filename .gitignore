@@ -1,11 +1,18 @@
+```gitignore
 # Node
-client/node_modules/
+node_modules/
+**/node_modules/
 client/dist/
 
-# Python
+# Python virtual environment
+venv/
+.venv/
+server/venv/
 server/.venv/
-server/__pycache__/
-server/**/__pycache__/
+
+# Python cache
+__pycache__/
+**/__pycache__/
 *.py[cod]
 
 # Environment files
@@ -17,3 +24,4 @@ server/**/__pycache__/
 *.db
 *.sqlite
 *.sqlite3
+```
