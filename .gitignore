@@ -12,3 +12,9 @@ server/**/__pycache__/
 .env
 .env.*
 !.env.example
+server/venv/
+
+# Local files
+.DS_Store
+server/venv/
+server/budgetbuddy.db
