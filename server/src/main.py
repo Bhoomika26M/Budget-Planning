@@ -9,6 +9,7 @@ from src.dashboard.transaction_model import Transaction
 from src.settings.settings_model import UserSettings
 from src.dashboard.transaction_routes import router as dashboard_router
 from src.settings.settings_routes import router as settings_router
+from src.income.controller import router as income_router
 
 
 @asynccontextmanager
@@ -38,6 +39,7 @@ app.add_middleware(
 
 app.include_router(dashboard_router)
 app.include_router(settings_router)
+app.include_router(income_router)
 app.include_router(api_router)
 
 
