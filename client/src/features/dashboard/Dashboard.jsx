@@ -1,5 +1,3 @@
-//import Sidebar from "./Sidebar";
-import Header from "./Header";
 import "./Dashboard.css";
 import SummaryCards from "./SummaryCards";
 import MonthlyOverview from "./MonthlyOverview";
@@ -12,12 +10,7 @@ function Dashboard() {
   return (
     <div className="dashboard-layout">
 
-      {/* <Sidebar /> */}
-
       <div className="dashboard-main">
-
-         <Header /> 
-
         <main className="dashboard-content">
            <SummaryCards />
         
