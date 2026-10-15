@@ -1,4 +1,4 @@
-```python
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,4 +36,3 @@ app.include_router(income_router)
 @app.get("/")
 def root():
     return {"message": "FastAPI is working!"}
-```
