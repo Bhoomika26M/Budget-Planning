@@ -1,9 +1,12 @@
 # Node
+node_modules/
 client/node_modules/
 client/dist/
+dist/
 
 # Python
 server/.venv/
+server/venv/
 server/__pycache__/
 server/**/__pycache__/
 *.py[cod]
@@ -17,7 +20,7 @@ server/**/__pycache__/
 *.db
 *.sqlite
 *.sqlite3
-# Local environment and macOS files
-server/venv/
+
+# macOS files
 .DS_Store
 **/.DS_Store
