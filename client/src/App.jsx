@@ -1,11 +1,9 @@
 import React from "react";
-
-import Settings from "./features/settings/Settings";
-import Dashboard from "./features/dashboard/Dashboard";
-
+import BudgetPlanning from "./features/budget/BudgetPlanning.jsx";
+import "./App.css";
 
 function App() {
-  return <Settings />;
+  return <BudgetPlanning />;
 }
 
-export default App
+export default App;

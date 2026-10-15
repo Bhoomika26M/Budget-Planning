@@ -17,3 +17,7 @@ server/**/__pycache__/
 *.db
 *.sqlite
 *.sqlite3
+# Local environment and macOS files
+server/venv/
+.DS_Store
+**/.DS_Store
