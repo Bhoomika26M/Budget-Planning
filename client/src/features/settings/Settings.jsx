@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./Settings.css";
 
 const SETTINGS_API = "http://127.0.0.1:8000/settings/";
@@ -19,7 +19,6 @@ const defaultSettings = {
 };
 
 function Settings({
-  user = null,
   settings: savedSettings,
   onSettingChange,
   transactions = [],
@@ -31,11 +30,18 @@ function Settings({
 }) {
   const [preferences, setPreferences] = useState({
     ...defaultSettings,
+    darkMode: localStorage.getItem("budgetbuddy-theme") === "dark",
     ...(savedSettings || {}),
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const theme = preferences.darkMode ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("budgetbuddy-theme", theme);
+  }, [preferences.darkMode]);
   
 useEffect(() => {
   async function loadSettings() {
@@ -61,10 +67,6 @@ useEffect(() => {
         language: data.language,
       }));
 
-      if (data.dark_mode !== undefined && data.dark_mode !== null) {
-            document.documentElement.dataset.theme =
-            data.dark_mode ? "dark" : "light";
-        }
     } catch (error) {
       setStatus("Could not load settings from the server.");
       console.error(error);
@@ -92,11 +94,6 @@ async function updateSetting(key, value) {
 
   setPreferences(updated);
   setStatus("");
-
-  // Immediately update the DOM theme if dark mode changes
-  if (key === "darkMode") {
-    document.documentElement.dataset.theme = value ? "dark" : "light";
-  }
 
   const payload = {
     email_notifications: updated.emailNotifications,
@@ -138,11 +135,6 @@ async function updateSetting(key, value) {
   } catch (error) {
     // Restore the last known values if the save failed.
     setPreferences(previous);
-
-    if (key === "darkMode") {
-      document.documentElement.dataset.theme =
-        previous.darkMode ? "dark" : "light";
-    }
 
     console.error("Settings save error:", error);
 
@@ -259,13 +251,6 @@ async function updateSetting(key, value) {
 
   return (
     <main className="settings-page">
-      <header className="settings-heading">
-        <div>
-          <h1>Settings</h1>
-          <p>Manage your account and preferences.</p>
-        </div>
-      </header>
-
       {!isPremium && (
         <section className="premium-banner">
           <div className="premium-copy">

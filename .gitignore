@@ -4,6 +4,8 @@ client/dist/
 
 # Python
 server/.venv/
+.venv*/
+venv*/
 server/__pycache__/
 server/**/__pycache__/
 *.py[cod]

@@ -36,7 +36,7 @@ html[data-theme="dark"] .settings-page .settings-dialog {
   border-color: var(--settings-border) !important;
 }
 
-html[data-theme="dark"] .settings-card {
+html[data-theme="dark"] .settings-page .settings-card {
   border-color: var(--settings-border);
   background: var(--settings-card);
   box-shadow: none;
@@ -51,12 +51,12 @@ html[data-theme="dark"] .settings-page select option {
   background: #1e293b;
   color: #f1f5f9;
 }
-html[data-theme="dark"] .premium-banner {
+html[data-theme="dark"] .settings-page .premium-banner {
   background: linear-gradient(110deg, #343528, #263b3b);
   border-color: #75652d;
 }
 
-html[data-theme="dark"] .premium-copy > p {
+html[data-theme="dark"] .settings-page .premium-copy > p {
   color: #cbd5e1;
 }
 
@@ -375,30 +375,4 @@ html[data-theme="dark"] .premium-copy > p {
   .settings-row p {
     max-width: 240px;
   }
-}
-
-/* Global dark mode */
-html[data-theme="dark"],
-html[data-theme="dark"] body,
-html[data-theme="dark"] #root {
-  background-color: #121820;
-  color: #f1f5f9;
-  min-height: 100%;
-}
-
-/* Main page containers */
-html[data-theme="dark"] main,
-html[data-theme="dark"] .app,
-html[data-theme="dark"] .dashboard,
-html[data-theme="dark"] .settings-page {
-  background-color: #121820;
-  color: #f1f5f9;
-}
-
-/* Cards and panels */
-html[data-theme="dark"] .settings-card,
-html[data-theme="dark"] .card {
-  background-color: #1e293b;
-  color: #f1f5f9;
-  border-color: #334155;
 }
