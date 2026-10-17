@@ -1,9 +1,10 @@
 
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../context/useAuth";
 import "./Settings.css";
 
-const SETTINGS_API = "http://127.0.0.1:8000/settings/";
+const SETTINGS_API = `${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"}/settings/`;
 
 const defaultSettings = {
   emailNotifications: true,
@@ -19,7 +20,6 @@ const defaultSettings = {
 };
 
 function Settings({
-  user = null,
   settings: savedSettings,
   onSettingChange,
   transactions = [],
@@ -29,6 +29,7 @@ function Settings({
   isPremium = false,
   onUpgrade,
 }) {
+  const { token } = useAuth();
   const [preferences, setPreferences] = useState({
     ...defaultSettings,
     ...(savedSettings || {}),
@@ -40,7 +41,9 @@ function Settings({
 useEffect(() => {
   async function loadSettings() {
     try {
-      const response = await fetch(SETTINGS_API);
+      const response = await fetch(SETTINGS_API, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) {
         throw new Error("Could not load settings");
@@ -61,10 +64,6 @@ useEffect(() => {
         language: data.language,
       }));
 
-      if (data.dark_mode !== undefined && data.dark_mode !== null) {
-            document.documentElement.dataset.theme =
-            data.dark_mode ? "dark" : "light";
-        }
     } catch (error) {
       setStatus("Could not load settings from the server.");
       console.error(error);
@@ -72,8 +71,11 @@ useEffect(() => {
   }
 
   loadSettings();
-}, []);
+}, [token]);
 
+useEffect(() => {
+  document.documentElement.dataset.theme = preferences.darkMode ? "dark" : "light";
+}, [preferences.darkMode]);
 
   
 
@@ -93,11 +95,6 @@ async function updateSetting(key, value) {
   setPreferences(updated);
   setStatus("");
 
-  // Immediately update the DOM theme if dark mode changes
-  if (key === "darkMode") {
-    document.documentElement.dataset.theme = value ? "dark" : "light";
-  }
-
   const payload = {
     email_notifications: updated.emailNotifications,
     push_notifications: updated.pushNotifications,
@@ -116,6 +113,7 @@ async function updateSetting(key, value) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
@@ -138,11 +136,6 @@ async function updateSetting(key, value) {
   } catch (error) {
     // Restore the last known values if the save failed.
     setPreferences(previous);
-
-    if (key === "darkMode") {
-      document.documentElement.dataset.theme =
-        previous.darkMode ? "dark" : "light";
-    }
 
     console.error("Settings save error:", error);
 

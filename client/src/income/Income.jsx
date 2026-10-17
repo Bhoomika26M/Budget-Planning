@@ -28,9 +28,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+import { useAuth } from "../context/useAuth";
 import "./Income.css";
 
-function Income() {
+function Income({ onNavigate }) {
+  const { currentUser, token, logout } = useAuth();
   const [income, setIncome] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,24 +60,20 @@ const [saving, setSaving] = useState(false);
   
 
 
-  const userId = 1;
-
- 
-
  useEffect(() => {
   async function loadData() {
     try {
       setLoading(true);
 
       const [incomeData, sourceData] = await Promise.all([
-        getIncome(userId),
-        getIncomeSources(userId),
+        getIncome(token),
+        getIncomeSources(token),
       ]);
 
       setIncome(incomeData);
       setIncomeSources(sourceData);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Unable to load income data");
     } finally {
       setLoading(false);
@@ -83,7 +81,7 @@ const [saving, setSaving] = useState(false);
   }
 
   loadData();
-}, []);
+}, [token]);
 
     
 
@@ -177,12 +175,11 @@ const handleSubmit = async (event) => {
     setError("");
 
     const newIncome = await addIncome({
-      user_id: userId,
       description: formData.description,
       amount: Number(formData.amount),
       date: formData.date,
       category: formData.category,
-    });
+    }, token);
 
     setIncome((previous) => [newIncome, ...previous]);
 
@@ -194,7 +191,7 @@ const handleSubmit = async (event) => {
     });
 
     setShowForm(false);
-  } catch (err) {
+  } catch {
     setError("Unable to save income.");
   } finally {
     setSaving(false);
@@ -208,12 +205,11 @@ const handleSourceSubmit = async (e) => {
     setSavingSource(true);
 
     const newSource = await addIncomeSource({
-      user_id: userId,
       name: sourceFormData.name,
       amount: Number(sourceFormData.amount),
       category: sourceFormData.category,
       frequency: sourceFormData.frequency,
-    });
+    }, token);
 
     setIncomeSources((currentSources) => [
       newSource,
@@ -228,7 +224,7 @@ const handleSourceSubmit = async (e) => {
     });
 
     setShowSourceForm(false);
-  } catch (err) {
+  } catch {
     setError("Unable to add income source");
   } finally {
     setSavingSource(false);
@@ -237,24 +233,24 @@ const handleSourceSubmit = async (e) => {
 
 const handleDelete = async (incomeId) => {
   try {
-    await deleteIncome(incomeId, userId);
+    await deleteIncome(incomeId, token);
 
     setIncome((previous) =>
       previous.filter((item) => item.id !== incomeId)
     );
-  } catch (err) {
+  } catch {
     setError("Unable to delete income.");
   }
 };
 
 const handleSourceDelete = async (sourceId) => {
   try {
-    await deleteIncomeSource(sourceId, userId);
+    await deleteIncomeSource(sourceId, token);
 
     setIncomeSources((currentSources) =>
       currentSources.filter((source) => source.id !== sourceId)
     );
-  } catch (err) {
+  } catch {
     setError("Unable to delete income source.");
   }
 };
@@ -266,7 +262,7 @@ return (
     <div className="income-header">
   <div className="income-title">
     <h1>Income</h1>
-    <p>Track your earnings, Gouri 👋</p>
+    <p>Track your earnings, {currentUser.name.split(" ")[0]} 👋</p>
   </div>
 
   <div className="income-header-actions">
@@ -308,16 +304,15 @@ return (
     className="header-profile"
     onClick={() => setShowProfileMenu(!showProfileMenu)}
   >
-    <span className="profile-avatar">G</span>
-    <span>Gouri</span>
+    <span className="profile-avatar">{currentUser.name.charAt(0).toUpperCase()}</span>
+    <span>{currentUser.name}</span>
     <ChevronDown size={15} />
   </button>
 
   {showProfileMenu && (
     <div className="profile-menu">
-      <button>Profile</button>
-      <button>Settings</button>
-      <button className="logout-button">Log out</button>
+      <button onClick={() => onNavigate?.("/profile")}>Manage profile</button>
+      <button className="logout-button" onClick={logout}>Log out</button>
     </div>
   )}
 </div>
