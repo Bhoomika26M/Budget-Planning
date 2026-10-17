@@ -32,11 +32,18 @@ function Settings({
   const { token } = useAuth();
   const [preferences, setPreferences] = useState({
     ...defaultSettings,
+    darkMode: localStorage.getItem("budgetbuddy-theme") === "dark",
     ...(savedSettings || {}),
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const theme = preferences.darkMode ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("budgetbuddy-theme", theme);
+  }, [preferences.darkMode]);
   
 useEffect(() => {
   async function loadSettings() {
@@ -252,13 +259,6 @@ async function updateSetting(key, value) {
 
   return (
     <main className="settings-page">
-      <header className="settings-heading">
-        <div>
-          <h1>Settings</h1>
-          <p>Manage your account and preferences.</p>
-        </div>
-      </header>
-
       {!isPremium && (
         <section className="premium-banner">
           <div className="premium-copy">
