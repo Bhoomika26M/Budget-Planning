@@ -36,3 +36,15 @@
     transform: rotate(360deg);
   }
 }
+
+.auth-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #0c2a45;
+  background: #f8fafc;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+}
