@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import {
   Utensils, Plane, ShoppingBag, BookOpen, Gamepad2, MoreHorizontal,
-   CalendarDays, Plus, Edit2, Trash2, AlertTriangle, X,
+  CalendarDays, Plus, Edit2, Trash2, AlertTriangle, X,
 } from "lucide-react";
 import "./BudgetAnalytics.css";
 
@@ -80,16 +80,12 @@ function BudgetForm({ initial, onSave, onClose, saving }) {
     event.preventDefault();
     setError("");
 
-    if (!allocated || !Number.isFinite(Number(allocated)) || Number(allocated) <= 0) {
-      setError("Enter a valid monthly limit greater than zero.");
-      return;
-    }
-
     if (
-      !initial &&
-      typeof initial === "undefined" &&
-      false
+      !allocated ||
+      !Number.isFinite(Number(allocated)) ||
+      Number(allocated) <= 0
     ) {
+      setError("Enter a valid monthly limit greater than zero.");
       return;
     }
 
@@ -188,8 +184,13 @@ export default function Budget() {
         api.getExpenses(),
       ]);
 
-      if (!Array.isArray(budgetRecords) || !Array.isArray(expenseRecords)) {
-        throw new Error("The server returned an unexpected budget or expense response.");
+      if (
+        !Array.isArray(budgetRecords) ||
+        !Array.isArray(expenseRecords)
+      ) {
+        throw new Error(
+          "The server returned an unexpected budget or expense response."
+        );
       }
 
       const now = new Date();
@@ -211,6 +212,7 @@ export default function Budget() {
         }
 
         const category = expense.category || "Miscellaneous";
+
         spendingByCategory[category] =
           (spendingByCategory[category] || 0) +
           Number(expense.amount || 0);
@@ -247,28 +249,31 @@ export default function Budget() {
     loadBudgets();
   }, [loadBudgets]);
 
-  const totalAllocated = budgets.reduce(
-    (sum, item) => sum + Number(item.allocated || 0),
-    0
-  );
-
   const totalSpent = budgets.reduce(
     (sum, item) => sum + Number(item.spent || 0),
     0
   );
 
   const remaining = Math.max(monthlyBudget - totalSpent, 0);
-  const unallocated = Math.max(monthlyBudget - totalAllocated, 0);
-
-  const allocatedPercent = monthlyBudget
-    ? Math.min(Math.round((totalAllocated / monthlyBudget) * 100), 100)
-    : 0;
 
   const spentPercent = monthlyBudget
     ? Math.min(Math.round((totalSpent / monthlyBudget) * 100), 100)
     : 0;
 
-  const overAllocated = totalAllocated > monthlyBudget;
+  // A category is near its limit once 80% of its budget is used.
+  // Exclude invalid or zero limits to avoid division by zero.
+  const nearLimitCategories = budgets.filter((item) => {
+    const limit = Number(item.allocated);
+    const spent = Number(item.spent || 0);
+
+    return (
+      Number.isFinite(limit) &&
+      limit > 0 &&
+      spent / limit >= 0.8
+    );
+  });
+
+  const nearLimitCount = nearLimitCategories.length;
 
   const monthLabel = new Date().toLocaleDateString("en-IN", {
     month: "long",
@@ -353,17 +358,13 @@ export default function Budget() {
   }
 
   const allocationData = useMemo(
-    () => [
-      ...budgets.map((item) => ({
+    () =>
+      budgets.map((item) => ({
         name: item.cat,
         value: Number(item.allocated || 0),
         color: item.color || COLORS[item.cat] || "#2E93C7",
       })),
-      ...(unallocated > 0
-        ? [{ name: "Unallocated", value: unallocated, color: "#E4EFF7" }]
-        : []),
-    ],
-    [budgets, unallocated]
+    [budgets]
   );
 
   return (
@@ -414,8 +415,6 @@ export default function Budget() {
         </div>
 
         <div className="ba-heading-actions">
-          
-
           <button
             type="button"
             className="ba-primary-button ba-button-inline"
@@ -437,26 +436,11 @@ export default function Budget() {
             <div className="ba-month-label">
               <CalendarDays size={15} /> {monthLabel}
             </div>
-
+            
             <h2>{money(monthlyBudget)}</h2>
-            <p className="ba-hero-caption">Total monthly category limits</p>
-
+            <p className="ba-hero-caption">Total monthly budget</p>
             <div className="ba-hero-progress">
-              <div className="ba-progress-label">
-                <span>Allocated ({allocatedPercent}%)</span>
-                <span>
-                  {money(totalAllocated)} / {money(monthlyBudget)}
-                </span>
-              </div>
-
-              <div className="ba-progress-track ba-progress-light">
-                <span
-                  style={{
-                    width: `${allocatedPercent}%`,
-                    background: overAllocated ? "#f87171" : "#93c5fd",
-                  }}
-                />
-              </div>
+              
 
               <div className="ba-progress-label">
                 <span>Spent ({spentPercent}%)</span>
@@ -471,13 +455,47 @@ export default function Budget() {
                   }}
                 />
               </div>
+              <div className="ba-progress-label">
+                <span>Near Limit Categories</span>
+                <span>
+                  {nearLimitCount} of {budgets.length} categories
+                </span>
+              </div>
+
+              <div className="ba-progress-track ba-progress-light">
+                <span
+                  style={{
+                    width: `${
+                      budgets.length
+                        ? Math.min(
+                            (nearLimitCount / budgets.length) * 100,
+                            100
+                          )
+                        : 0
+                    }%`,
+                    background: nearLimitCount > 0 ? "#f59e0b" : "#93c5fd",
+                  }}
+                />
+              </div>
             </div>
           </div>
 
           <div className="ba-hero-stats">
             {[
-              ["Monthly Budget", money(monthlyBudget), "Total category limits"],
-              ["Allocated", money(totalAllocated), `${allocatedPercent}% of budget`],
+              [
+                "Monthly Budget",
+                money(monthlyBudget),
+                "Total category limits",
+              ],
+              [
+                "Near Limit Categories",
+                String(nearLimitCount),
+                nearLimitCount === 0
+                  ? "No categories near their limits"
+                  : `${nearLimitCount} category${
+                      nearLimitCount === 1 ? "" : "ies"
+                    } need attention`,
+              ],
               ["Spent", money(totalSpent), `${spentPercent}% utilized`],
               ["Remaining", money(remaining), "Available to spend"],
             ].map(([label, value, sub]) => (
@@ -490,11 +508,12 @@ export default function Budget() {
           </div>
         </div>
 
-        {overAllocated && (
+        {nearLimitCount > 0 && (
           <div className="ba-hero-alert">
             <AlertTriangle size={15} />
-            Category allocations ({money(totalAllocated)}) exceed the monthly
-            category total.
+            {nearLimitCount} categor
+            {nearLimitCount === 1 ? "y is" : "ies are"} using at least 80% of
+            their budget.
           </div>
         )}
       </section>
