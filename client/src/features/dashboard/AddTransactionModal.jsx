@@ -1,10 +1,21 @@
 import { useState } from "react";
+import { useAuth } from "../../context/useAuth";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+function getLocalDateString() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${today.getFullYear()}-${month}-${day}`;
+}
 
 function AddTransactionModal({ onClose }) {
+  const { token } = useAuth();
   const [type, setType] = useState("expense");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("2026-09-03");
+  const [date, setDate] = useState(getLocalDateString);
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("Checking");
   const [saving, setSaving] = useState(false);
@@ -61,11 +72,12 @@ function AddTransactionModal({ onClose }) {
       setSaving(true);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/dashboard/transactions",
+        `${API_BASE_URL}/dashboard/transactions`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(transactionData),
         }

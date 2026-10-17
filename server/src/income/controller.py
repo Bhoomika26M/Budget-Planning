@@ -1,122 +1,109 @@
 from datetime import date
+from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from src.database.core import SessionLocal
+from src.auth.security import get_current_user, get_db
+from src.entities.user import User
 from src.income.service import (
     create_income,
-    get_user_income,
-    delete_income,
     create_income_source,
-    get_user_income_sources,
+    delete_income,
     delete_income_source,
+    get_user_income,
+    get_user_income_sources,
 )
 
-
-router = APIRouter(prefix="/income", tags=["Income"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter(prefix='/income', tags=['Income'])
 
 
 class IncomeCreate(BaseModel):
-    user_id: int
-    description: str
-    amount: float
-    date: date
-    category: str
-    
-class IncomeSourceCreate(BaseModel):
-    user_id: int
-    name: str
-    amount: float
-    category: str
-    frequency: str
+    model_config = ConfigDict(extra='forbid')
 
-@router.post("/")
+    description: str = Field(min_length=1, max_length=255)
+    amount: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    date: date
+    category: str = Field(min_length=1, max_length=100)
+
+
+class IncomeSourceCreate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+    name: str = Field(min_length=1, max_length=255)
+    amount: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
+    category: str = Field(min_length=1, max_length=100)
+    frequency: str = Field(min_length=1, max_length=50)
+
+
+@router.post('/', status_code=status.HTTP_201_CREATED)
 def add_income(
     income: IncomeCreate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     return create_income(
         db=db,
-        user_id=income.user_id,
-        description=income.description,
+        user_id=user.id,
+        description=income.description.strip(),
         amount=income.amount,
         date=income.date,
-        category=income.category,
+        category=income.category.strip(),
     )
 
 
-@router.get("/{user_id}")
+@router.get('/')
 def fetch_income(
-    user_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    return get_user_income(db, user_id)
+    return get_user_income(db, user.id)
 
 
-@router.delete("/{income_id}")
-def remove_income(
-    income_id: int,
-    user_id: int,
-    db: Session = Depends(get_db),
-):
-    income = delete_income(db, user_id, income_id)
-
-    if income is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Income not found",
-        )
-@router.post("/sources")
+@router.post('/sources', status_code=status.HTTP_201_CREATED)
 def add_income_source(
     source: IncomeSourceCreate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     return create_income_source(
         db=db,
-        user_id=source.user_id,
-        name=source.name,
+        user_id=user.id,
+        name=source.name.strip(),
         amount=source.amount,
-        category=source.category,
-        frequency=source.frequency,
+        category=source.category.strip(),
+        frequency=source.frequency.strip(),
     )
 
 
-@router.get("/sources/{user_id}")
+@router.get('/sources')
 def fetch_income_sources(
-    user_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    return get_user_income_sources(db, user_id)
+    return get_user_income_sources(db, user.id)
 
 
-@router.delete("/sources/{source_id}")
+@router.delete('/sources/{source_id}', status_code=status.HTTP_204_NO_CONTENT)
 def remove_income_source(
     source_id: int,
-    user_id: int,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    source = delete_income_source(
-        db,
-        user_id,
-        source_id,
-    )
-
+    source = delete_income_source(db, user.id, source_id)
     if source is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Income source not found",
-        )
+        raise HTTPException(status_code=404, detail='Income source not found')
+    return None
 
-    return {"message": "Income source deleted successfully"}
 
-    return {"message": "Income deleted successfully"}
+@router.delete('/{income_id}', status_code=status.HTTP_204_NO_CONTENT)
+def remove_income(
+    income_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    income = delete_income(db, user.id, income_id)
+    if income is None:
+        raise HTTPException(status_code=404, detail='Income not found')
+    return None

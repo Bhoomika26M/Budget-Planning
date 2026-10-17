@@ -1,5 +1,5 @@
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.core import Base
@@ -7,8 +7,12 @@ from src.database.core import Base
 
 class UserSettings(Base):
     __tablename__ = "user_settings"
+    __table_args__ = (Index("uq_user_settings_user_id", "user_id", unique=True),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     email_notifications: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False

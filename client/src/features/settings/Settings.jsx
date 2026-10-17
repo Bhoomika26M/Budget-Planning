@@ -1,9 +1,10 @@
 
 
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/useAuth";
 import "./Settings.css";
 
-const SETTINGS_API = "http://127.0.0.1:8000/settings/";
+const SETTINGS_API = `${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"}/settings/`;
 
 const defaultSettings = {
   emailNotifications: true,
@@ -28,6 +29,7 @@ function Settings({
   isPremium = false,
   onUpgrade,
 }) {
+  const { token } = useAuth();
   const [preferences, setPreferences] = useState({
     ...defaultSettings,
     darkMode: localStorage.getItem("budgetbuddy-theme") === "dark",
@@ -46,7 +48,9 @@ function Settings({
 useEffect(() => {
   async function loadSettings() {
     try {
-      const response = await fetch(SETTINGS_API);
+      const response = await fetch(SETTINGS_API, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) {
         throw new Error("Could not load settings");
@@ -74,8 +78,11 @@ useEffect(() => {
   }
 
   loadSettings();
-}, []);
+}, [token]);
 
+useEffect(() => {
+  document.documentElement.dataset.theme = preferences.darkMode ? "dark" : "light";
+}, [preferences.darkMode]);
 
   
 
@@ -113,6 +120,7 @@ async function updateSetting(key, value) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });

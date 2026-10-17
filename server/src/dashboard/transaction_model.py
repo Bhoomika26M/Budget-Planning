@@ -1,6 +1,6 @@
 from datetime import date as Date
 
-from sqlalchemy import String, Float, Date
+from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.core import Base
@@ -10,6 +10,9 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
 
     type: Mapped[str] = mapped_column(
         String(20),

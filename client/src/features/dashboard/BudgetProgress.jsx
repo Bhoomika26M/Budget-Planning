@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../../context/useAuth";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 function BudgetProgress() {
+  const { token } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +28,9 @@ function BudgetProgress() {
   ];
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/dashboard/transactions")
+    fetch(`${API_BASE_URL}/dashboard/transactions`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch transactions");
@@ -41,7 +47,7 @@ function BudgetProgress() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [token]);
 
   // Current month
   const today = new Date();

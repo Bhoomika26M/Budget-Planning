@@ -1,86 +1,73 @@
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from src.database.core import SessionLocal
-from .transaction_model import Transaction
+from src.auth.security import get_current_user, get_db
+from src.dashboard.transaction_model import Transaction
+from src.entities.user import User
 
-
-router = APIRouter(
-    prefix="/dashboard",
-    tags=["Dashboard"]
-)
+router = APIRouter(prefix='/dashboard', tags=['Dashboard'])
 
 
 class TransactionCreate(BaseModel):
-    type: str
-    description: str
+    model_config = ConfigDict(extra='forbid')
+
+    type: Literal['income', 'expense']
+    description: str = Field(min_length=1, max_length=255)
     amount: float
     date: date
-    category: str
-    account: str = "Checking"
+    category: str = Field(min_length=1, max_length=100)
+    account: str = Field(default='Checking', min_length=1, max_length=100)
 
 
-def get_db():
-    db = SessionLocal()
+def _serialize_transaction(transaction: Transaction) -> dict:
+    return {
+        'id': transaction.id,
+        'type': transaction.type,
+        'description': transaction.description,
+        'amount': transaction.amount,
+        'date': str(transaction.date),
+        'category': transaction.category,
+        'account': transaction.account,
+    }
 
-    try:
-        yield db
-    finally:
-        db.close()
 
-
-@router.post("/transactions")
+@router.post('/transactions', status_code=201)
 def add_transaction(
     transaction: TransactionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     new_transaction = Transaction(
+        user_id=user.id,
         type=transaction.type,
-        description=transaction.description,
+        description=transaction.description.strip(),
         amount=transaction.amount,
         date=transaction.date,
-        category=transaction.category,
-        account=transaction.account,
+        category=transaction.category.strip(),
+        account=transaction.account.strip(),
     )
-
     db.add(new_transaction)
     db.commit()
     db.refresh(new_transaction)
-
     return {
-        "message": "Transaction added successfully",
-        "transaction": {
-            "id": new_transaction.id,
-            "type": new_transaction.type,
-            "description": new_transaction.description,
-            "amount": new_transaction.amount,
-            "date": str(new_transaction.date),
-            "category": new_transaction.category,
-            "account": new_transaction.account,
-        },
+        'message': 'Transaction added successfully',
+        'transaction': _serialize_transaction(new_transaction),
     }
-@router.get("/transactions")
+
+
+@router.get('/transactions')
 def get_transactions(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     transactions = (
         db.query(Transaction)
+        .filter(Transaction.user_id == user.id)
         .order_by(Transaction.date.desc(), Transaction.id.desc())
         .all()
     )
-
-    return [
-        {
-            "id": transaction.id,
-            "type": transaction.type,
-            "description": transaction.description,
-            "amount": transaction.amount,
-            "date": str(transaction.date),
-            "category": transaction.category,
-            "account": transaction.account,
-        }
-        for transaction in transactions
-    ]
+    return [_serialize_transaction(transaction) for transaction in transactions]
