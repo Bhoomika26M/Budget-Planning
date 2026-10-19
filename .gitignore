@@ -1,6 +1,2 @@
-node_modules/
-
-# Python bytecode & cache files
-__pycache__/
-*.py[cod]
-*$py.class
+node_modules
+dist
