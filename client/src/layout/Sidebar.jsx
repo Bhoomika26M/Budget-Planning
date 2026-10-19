@@ -1,36 +1,8 @@
 const navigationGroups = [
   {
-    label: "Overview",
-    items: [{ id: "dashboard", label: "Dashboard", icon: "▦", href: "/" }],
-  },
-  {
-    label: "Finance",
-    items: [
-      { id: "transactions", label: "Transactions", icon: "↔" },
-      { id: "income", label: "Income", icon: "↗" },
-      { id: "expenses", label: "Expenses", icon: "⌁", href: "/expenses" },
-    ],
-  },
-  {
-    label: "Planning",
-    items: [
-      { id: "budgets", label: "Budget Planning", icon: "▣" },
-      { id: "savings", label: "Savings Goals", icon: "◎" },
-    ],
-  },
-  {
-    label: "Insights",
-    items: [
-      { id: "analytics", label: "Analytics", icon: "▥" },
-      { id: "reports", label: "Reports", icon: "▤" },
-    ],
-  },
-  {
     label: "Account",
     items: [
-      { id: "notifications", label: "Notifications", icon: "♧" },
-      { id: "profile", label: "Profile", icon: "♙" },
-      { id: "settings", label: "Settings", icon: "⚙", href: "/settings" },
+      { id: "notifications", label: "Notifications", icon: "♧", href: "/notifications" },
     ],
   },
 ];

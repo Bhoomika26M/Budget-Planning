@@ -24,11 +24,11 @@ import {
   Search,
   Plus,
   Moon,
-  Bell,
   ChevronDown,
 } from "lucide-react";
 
 import { useAuth } from "../context/useAuth";
+import NotificationBell from "../features/notifications/NotificationBell";
 import "./Income.css";
 
 function Income({ onNavigate }) {
@@ -291,13 +291,7 @@ return (
   <Moon size={19} />
 </button>
 
-    <button
-      className="header-icon-button notification-button"
-      title="Notifications"
-    >
-      <Bell size={19} />
-      <span className="notification-dot"></span>
-    </button>
+    <NotificationBell />
 
     <div className="profile-wrapper">
   <button

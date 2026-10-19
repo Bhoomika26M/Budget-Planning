@@ -1,152 +1,59 @@
+import { useEffect, useLayoutEffect } from "react";
 import { AuthProvider } from "./context/AuthContext";
-import { useEffect, useLayoutEffect, useState } from "react";
 import { useAuth } from "./context/useAuth";
-import AdminDashboard from "./admin/AdminDashboard";
 import AuthPage from "./authentication/AuthPage";
-import Income from "./income/Income";
-import ProfilePage from "./profile/ProfilePage";
+import NotificationsPage from "./features/notifications/NotificationsPage";
 import "./App.css";
-import AddTransactionModal from "./features/dashboard/AddTransactionModal";
-import Dashboard from "./features/dashboard/Dashboard";
-import ExpenseTracker from "./features/expenses/ExpenseTracker";
-import Settings from "./features/settings/Settings";
-import Navbar from "./layout/Navbar";
-import PageContainer from "./layout/PageContainer";
-import Sidebar from "./layout/Sidebar";
 
-const routes = {
-  "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
-  "/dashboard": { id: "dashboard", title: "Dashboard", Page: Dashboard },
-  "/expenses": { id: "expenses", title: "Expenses", Page: ExpenseTracker },
-  "/settings": {
-    id: "settings",
-    title: "Settings",
-    subtitle: "Manage your account and preferences.",
-    Page: Settings,
-  },
-  "/profile": {
-    id: "profile",
-    title: "Profile",
-    Page: ProfilePage,
-  },
-};
-
-function NotFoundPage({ onNavigate }) {
-  return (
-    <section className="route-not-found">
-      <h2>Page not found</h2>
-      <p>No page is registered for this address.</p>
-      <a href="/" onClick={(event) => onNavigate(event, "/")}>
-        Return to Dashboard
-      </a>
-    </section>
-  );
-}
-
-function isPlainLeftClick(event) {
-  return (
-    event.button === 0 &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.altKey
-  );
-}
+// ===========================================================================
+// TEMPORARY DEVELOPMENT-ONLY PREVIEW — Notifications branch (Gouri).
+// Remove / do not merge as-is.
+// - Renders ONLY the standalone NotificationsPage at full browser width:
+//   no Sidebar, no BudgetBuddy branding/logo, no Account heading, no shared
+//   Navbar / PageContainer application shell.
+// - `npm run dev` skips the login page so the UI opens directly.
+// This does NOT weaken authentication: no user is faked, no token is forged,
+// the backend still enforces bearer auth, and production builds
+// (import.meta.env.DEV === false) still render the real <AuthPage /> gate,
+// so this file can never ship as the team's authentication flow.
+// ===========================================================================
+const DEV_PREVIEW = import.meta.env.DEV;
+const NOTIFICATIONS_PATH = "/notifications";
 
 function getPathname() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
 }
 
-function App() {
-  const [pathname, setPathname] = useState(getPathname);
-  const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const currentRoute = routes[pathname] ?? {
-    id: null,
-    title: "Page not found",
-    Page: NotFoundPage,
-  };
-  const Page = currentRoute.Page;
+function AppContent() {
+  const { currentUser, loading } = useAuth();
 
   useLayoutEffect(() => {
     const savedTheme = localStorage.getItem("budgetbuddy-theme");
     document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
   }, []);
 
+  // Standalone preview: any path (including "/", "/dashboard", …) normalises
+  // to /notifications, the single development entry page.
   useEffect(() => {
-    const handlePopState = () => setPathname(getPathname());
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    const normalize = () => {
+      if (getPathname() !== NOTIFICATIONS_PATH) {
+        window.history.replaceState({}, "", NOTIFICATIONS_PATH);
+      }
+    };
+    normalize();
+    window.addEventListener("popstate", normalize);
+    return () => window.removeEventListener("popstate", normalize);
   }, []);
-
-  function navigate(event, path) {
-    if (!isPlainLeftClick(event)) {
-      return;
-    }
-
-    event.preventDefault();
-    if (getPathname() !== path) {
-      window.history.pushState({}, "", path);
-      setPathname(path);
-    }
-  }
-
-  const dashboardActions = currentRoute.id === "dashboard" ? (
-    <button
-      className="app-action-button"
-      type="button"
-      onClick={() => setShowTransactionModal(true)}
-    >
-      + Add Transaction
-    </button>
-  ) : null;
-
-  return (
-    <div className="app-shell">
-      <Sidebar activeItem={currentRoute.id} onNavigate={navigate} />
-      <div className="app-main">
-        <Navbar
-          title={currentRoute.title}
-          subtitle={currentRoute.subtitle}
-          actions={dashboardActions}
-        />
-        <PageContainer>
-          <Page onNavigate={navigate} />
-        </PageContainer>
-      </div>
-      {showTransactionModal && (
-        <AddTransactionModal onClose={() => setShowTransactionModal(false)} />
-      )}
-    </div>
-  );
-
-function AppContent() {
-  const { currentUser, loading } = useAuth();
-  const [pathname, setPathname] = useState(() => window.location.pathname);
-
-  useEffect(() => {
-    const updatePath = () => setPathname(window.location.pathname);
-    window.addEventListener("popstate", updatePath);
-    return () => window.removeEventListener("popstate", updatePath);
-  }, []);
-
-  function navigate(path) {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, "", path);
-      setPathname(path);
-    }
-  }
 
   if (loading) {
     return <main className="app-loading" role="status">Loading your account…</main>;
   }
-  if (!currentUser) return <AuthPage />;
-  if (pathname === "/profile") {
-    return <ProfilePage onNavigate={navigate} />;
-  }
-  if (currentUser.role === "admin") {
-    return <AdminDashboard onNavigate={navigate} />;
-  }
-  return <Income onNavigate={navigate} />;
+
+  // Preview only: in the dev server, show the Notifications UI even without
+  // a session instead of the login page. Production builds keep <AuthPage />.
+  if (!currentUser && !DEV_PREVIEW) return <AuthPage />;
+
+  return <NotificationsPage />;
 }
 
 export default function App() {
