@@ -1,9 +1,9 @@
 .income-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 32px;
+  min-height: calc(100vh - 68px);
+  padding: 24px;
   box-sizing: border-box;
-  background: #f1f6f8;
+  background: transparent;
   font-family: Arial, sans-serif;
   text-align: left;
 }

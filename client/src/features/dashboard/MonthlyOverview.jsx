@@ -7,8 +7,10 @@ function MonthlyOverview() {
   const { token } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     fetch(`${API_BASE_URL}/dashboard/transactions`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -20,14 +22,23 @@ function MonthlyOverview() {
         return response.json();
       })
       .then((data) => {
-        setTransactions(data);
+        if (!Array.isArray(data)) {
+          throw new Error("The transaction service returned an invalid response.");
+        }
+        if (active) {
+          setTransactions(data);
+          setError("");
+        }
       })
       .catch((error) => {
-        console.error(error);
+        if (active) setError(error.message || "Unable to load monthly data.");
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   // Get the last 6 months
@@ -46,8 +57,7 @@ function MonthlyOverview() {
         month: date.toLocaleString("en-US", {
           month: "short",
         }),
-        monthNumber: date.getMonth(),
-        year: date.getFullYear(),
+        key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
       });
     }
 
@@ -59,12 +69,7 @@ function MonthlyOverview() {
   // Calculate income and expenses for each month
   const monthlyData = months.map((month) => {
     const monthTransactions = transactions.filter((transaction) => {
-      const transactionDate = new Date(transaction.date);
-
-      return (
-        transactionDate.getMonth() === month.monthNumber &&
-        transactionDate.getFullYear() === month.year
-      );
+      return transaction.date.startsWith(month.key);
     });
 
     const income = monthTransactions
@@ -113,7 +118,9 @@ function MonthlyOverview() {
       </div>
 
       {loading ? (
-        <p>Loading monthly data...</p>
+        <p role="status">Loading monthly data...</p>
+      ) : error ? (
+        <p role="alert">{error}</p>
       ) : (
         <>
           <div className="chart">

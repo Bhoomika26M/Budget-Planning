@@ -1,4 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../context/useAuth';
+import {
+  createExpense,
+  deleteExpense,
+  getExpenses,
+  updateExpense,
+} from './expenseService';
 import './ExpenseTracker.css';
 
 const EXPENSE_CATEGORIES = [
@@ -12,13 +19,18 @@ const EXPENSE_CATEGORIES = [
   { value: 'Other', icon: '💬', color: '#94a3b8' },
 ];
 
-const API_URL = 'http://127.0.0.1:8000/expenses';
+function getLocalDate() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
 
 const emptyForm = {
   title: '',
   category: 'Food',
   amount: '',
-  date: new Date().toISOString().split('T')[0],
+  date: getLocalDate(),
   note: '',
   payment_method: 'Card',
 };
@@ -36,30 +48,43 @@ function getCategoryMeta(category) {
 }
 
 function ExpenseTracker() {
+  const { token } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchExpenses();
-  }, []);
+    let active = true;
+    getExpenses(token)
+      .then((data) => {
+        if (!active) return;
+        if (!Array.isArray(data)) {
+          throw new Error('The expense service returned an invalid response.');
+        }
+        setExpenses(data);
+        setStatus('');
+      }).catch((error) => {
+        if (active) setStatus(error.message || 'Unable to fetch expenses.');
+      }).finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
-  async function fetchExpenses() {
+  async function refreshExpenses() {
     try {
-      const res = await fetch(`${API_URL}/`);
-      if (!res.ok) throw new Error('Could not load expense records.');
-      const data = await res.json();
+      const data = await getExpenses(token);
       if (!Array.isArray(data)) {
-        throw new Error('The expense API returned an invalid response.');
+        throw new Error('The expense service returned an invalid response.');
       }
       setExpenses(data);
-      setStatus('');
     } catch (error) {
       setStatus(error.message || 'Unable to fetch expenses.');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -117,7 +142,8 @@ function ExpenseTracker() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (!form.title.trim() || !Number(form.amount)) {
+    const amount = Number(form.amount);
+    if (!form.title.trim() || !Number.isFinite(amount) || amount <= 0 || !form.date) {
       setStatus('Please enter a title and a valid amount.');
       return;
     }
@@ -125,35 +151,31 @@ function ExpenseTracker() {
     const payload = {
       title: form.title.trim(),
       category: form.category,
-      amount: Number(form.amount),
+      amount,
       date: form.date,
       note: form.note.trim(),
       payment_method: form.payment_method,
     };
 
     try {
-      const endpoint = editingId ? `${API_URL}/${editingId}` : API_URL;
-      const res = await fetch(endpoint, {
-        method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || 'Could not save expense.');
+      setSaving(true);
+      if (editingId) {
+        await updateExpense(token, editingId, payload);
+      } else {
+        await createExpense(token, payload);
       }
-
-      setStatus(editingId ? 'Expense updated.' : 'Expense added.');
       setForm(emptyForm);
       setEditingId(null);
-      await fetchExpenses();
+      await refreshExpenses();
+      setStatus(editingId ? 'Expense updated.' : 'Expense added.');
     } catch (error) {
       setStatus(error.message || 'Unable to save expense.');
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function handleEdit(expense) {
+  function handleEdit(expense) {
     setEditingId(expense.id);
     setForm({
       title: expense.title,
@@ -167,14 +189,9 @@ function ExpenseTracker() {
 
   async function handleDelete(id) {
     try {
-      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Delete failed.');
-      }
-
+      await deleteExpense(token, id);
+      await refreshExpenses();
       setStatus('Expense deleted.');
-      await fetchExpenses();
     } catch (error) {
       setStatus(error.message || 'Unable to delete expense.');
     }
@@ -225,7 +242,7 @@ function ExpenseTracker() {
           <form onSubmit={handleSubmit} className="expense-form">
             <label>
               Expense title
-              <input name="title" value={form.title} onChange={handleInputChange} placeholder="Groceries, travel, rent..." />
+              <input name="title" value={form.title} onChange={handleInputChange} placeholder="Groceries, travel, rent..." maxLength="150" required />
             </label>
 
             <div className="split-row">
@@ -240,14 +257,14 @@ function ExpenseTracker() {
 
               <label>
                 Amount
-                <input name="amount" type="number" min="0" step="0.01" value={form.amount} onChange={handleInputChange} placeholder="0.00" />
+                <input name="amount" type="number" min="0.01" step="0.01" value={form.amount} onChange={handleInputChange} placeholder="0.00" required />
               </label>
             </div>
 
             <div className="split-row">
               <label>
                 Date
-                <input name="date" type="date" value={form.date} onChange={handleInputChange} />
+                <input name="date" type="date" value={form.date} onChange={handleInputChange} required />
               </label>
 
               <label>
@@ -263,12 +280,12 @@ function ExpenseTracker() {
 
             <label>
               Notes
-              <textarea name="note" value={form.note} onChange={handleInputChange} rows="3" placeholder="Optional notes" />
+              <textarea name="note" value={form.note} onChange={handleInputChange} rows="3" maxLength="255" placeholder="Optional notes" />
             </label>
 
             <div className="form-actions">
-              <button type="submit" className="primary-btn">
-                {editingId ? 'Save changes' : 'Add expense'}
+              <button type="submit" className="primary-btn" disabled={saving}>
+                {saving ? 'Saving...' : editingId ? 'Save changes' : 'Add expense'}
               </button>
               {editingId && (
                 <button type="button" className="secondary-btn" onClick={() => {

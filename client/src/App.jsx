@@ -1,44 +1,95 @@
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { AuthProvider } from "./context/AuthContext";
-import { useEffect, useLayoutEffect, useState } from "react";
 import { useAuth } from "./context/useAuth";
 import AdminDashboard from "./admin/AdminDashboard";
 import AuthPage from "./authentication/AuthPage";
 import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
+import FeatureStatusPage from "./pages/FeatureStatusPage";
+import SavingsGoals from "./pages/SavingsGoals";
+import BudgetPlanning from "./pages/BudgetPlanning";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
 import Dashboard from "./features/dashboard/Dashboard";
 import ExpenseTracker from "./features/expenses/ExpenseTracker";
+import RecentTransactions from "./features/dashboard/RecentTransactions";
 import Settings from "./features/settings/Settings";
 import Navbar from "./layout/Navbar";
 import PageContainer from "./layout/PageContainer";
 import Sidebar from "./layout/Sidebar";
 
+const Analytics = lazy(() => import("./pages/Analytics"));
+
 const routes = {
   "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
   "/dashboard": { id: "dashboard", title: "Dashboard", Page: Dashboard },
+  "/transactions": { id: "transactions", title: "Transactions", Page: RecentTransactions },
   "/expenses": { id: "expenses", title: "Expenses", Page: ExpenseTracker },
+  "/analytics": { id: "analytics", title: "Analytics", Page: Analytics },
+  "/budgets": {
+    id: "budgets",
+    title: "Budget Planning",
+    Page: BudgetPlanning,
+  },
+  "/income": { id: "income", title: "Income", Page: Income },
+  "/savings-goals": { id: "savings", title: "Savings Goals", Page: SavingsGoals },
+  "/reports": {
+    id: "reports",
+    title: "Reports",
+    Page: FeatureStatusPage,
+    pageProps: {
+      title: "Reports",
+      summary: "Review and export summaries of your financial activity.",
+      missing: "There is no reports page, report-generation API, or export workflow in the current app.",
+    },
+  },
+  "/notifications": {
+    id: "notifications",
+    title: "Notifications",
+    Page: FeatureStatusPage,
+    pageProps: {
+      title: "Notifications",
+      summary: "View account alerts and reminders in one place.",
+      missing: "A notifications inbox and delivery API are not implemented. Notification preference switches in Settings only save preferences; they do not send or display notifications.",
+    },
+  },
+  "/admin": { id: "admin", title: "User Management", Page: AdminDashboard },
   "/settings": {
     id: "settings",
     title: "Settings",
     subtitle: "Manage your account and preferences.",
     Page: Settings,
   },
-  "/profile": {
-    id: "profile",
-    title: "Profile",
-    Page: ProfilePage,
-  },
+  "/profile": { id: "profile", title: "Profile", Page: ProfilePage },
 };
+
+function getPathname() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
+}
 
 function NotFoundPage({ onNavigate }) {
   return (
     <section className="route-not-found">
       <h2>Page not found</h2>
       <p>No page is registered for this address.</p>
-      <a href="/" onClick={(event) => onNavigate(event, "/")}>
-        Return to Dashboard
+      <a
+        href="/"
+        onClick={(event) => {
+          event.preventDefault();
+          onNavigate("/");
+        }}
+      >
+        Return to Home
       </a>
+    </section>
+  );
+}
+
+function AccessDeniedPage() {
+  return (
+    <section className="route-not-found" role="alert">
+      <h2>Access denied</h2>
+      <p>This page is available to administrators only.</p>
     </section>
   );
 }
@@ -53,19 +104,10 @@ function isPlainLeftClick(event) {
   );
 }
 
-function getPathname() {
-  return window.location.pathname.replace(/\/+$/, "") || "/";
-}
-
-function App() {
+function AppContent() {
+  const { currentUser, loading, logout } = useAuth();
   const [pathname, setPathname] = useState(getPathname);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const currentRoute = routes[pathname] ?? {
-    id: null,
-    title: "Page not found",
-    Page: NotFoundPage,
-  };
-  const Page = currentRoute.Page;
 
   useLayoutEffect(() => {
     const savedTheme = localStorage.getItem("budgetbuddy-theme");
@@ -78,19 +120,40 @@ function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  function navigate(event, path) {
-    if (!isPlainLeftClick(event)) {
-      return;
-    }
-
-    event.preventDefault();
+  function navigateTo(path) {
     if (getPathname() !== path) {
       window.history.pushState({}, "", path);
       setPathname(path);
     }
   }
 
-  const dashboardActions = currentRoute.id === "dashboard" ? (
+  function navigate(event, path) {
+    if (!isPlainLeftClick(event)) return;
+    event.preventDefault();
+    navigateTo(path);
+  }
+
+  if (loading) {
+    return <main className="app-loading" role="status">Loading your account…</main>;
+  }
+  if (!currentUser) return <AuthPage />;
+
+  const currentRoute = routes[pathname] ?? {
+    id: null,
+    title: "Page not found",
+    Page: NotFoundPage,
+  };
+  const authorizedRoute =
+    currentRoute.id !== "admin" || currentUser.role === "admin"
+      ? currentRoute
+      : {
+          id: null,
+          title: "Access denied",
+          subtitle: "This page is available to administrators only.",
+          Page: AccessDeniedPage,
+        };
+  const Page = authorizedRoute.Page;
+  const dashboardActions = authorizedRoute.id === "dashboard" ? (
     <button
       className="app-action-button"
       type="button"
@@ -102,15 +165,24 @@ function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar activeItem={currentRoute.id} onNavigate={navigate} />
+      <Sidebar
+        activeItem={authorizedRoute.id}
+        currentUser={currentUser}
+        onNavigate={navigate}
+      />
       <div className="app-main">
         <Navbar
-          title={currentRoute.title}
-          subtitle={currentRoute.subtitle}
+          title={authorizedRoute.title}
+          subtitle={authorizedRoute.subtitle}
           actions={dashboardActions}
+          currentUser={currentUser}
+          onNavigate={navigateTo}
+          onLogout={logout}
         />
         <PageContainer>
-          <Page onNavigate={navigate} />
+          <Suspense fallback={<p role="status">Loading page...</p>}>
+            <Page {...authorizedRoute.pageProps} onNavigate={navigateTo} />
+          </Suspense>
         </PageContainer>
       </div>
       {showTransactionModal && (
@@ -118,35 +190,6 @@ function App() {
       )}
     </div>
   );
-
-function AppContent() {
-  const { currentUser, loading } = useAuth();
-  const [pathname, setPathname] = useState(() => window.location.pathname);
-
-  useEffect(() => {
-    const updatePath = () => setPathname(window.location.pathname);
-    window.addEventListener("popstate", updatePath);
-    return () => window.removeEventListener("popstate", updatePath);
-  }, []);
-
-  function navigate(path) {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, "", path);
-      setPathname(path);
-    }
-  }
-
-  if (loading) {
-    return <main className="app-loading" role="status">Loading your account…</main>;
-  }
-  if (!currentUser) return <AuthPage />;
-  if (pathname === "/profile") {
-    return <ProfilePage onNavigate={navigate} />;
-  }
-  if (currentUser.role === "admin") {
-    return <AdminDashboard onNavigate={navigate} />;
-  }
-  return <Income onNavigate={navigate} />;
 }
 
 export default function App() {
