@@ -7,6 +7,7 @@ import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
+import BudgetPlanning from "./features/budget/BudgetPlanning";
 import Dashboard from "./features/dashboard/Dashboard";
 import ExpenseTracker from "./features/expenses/ExpenseTracker";
 import Settings from "./features/settings/Settings";
@@ -24,10 +25,11 @@ const routes = {
     subtitle: "Manage your account and preferences.",
     Page: Settings,
   },
-  "/profile": {
-    id: "profile",
-    title: "Profile",
-    Page: ProfilePage,
+  "/budgets": {
+    id: "budgets",
+    title: "Budget Planning",
+    subtitle: "Set monthly limits and track spending by category.",
+    Page: BudgetPlanning,
   },
 };
 
@@ -57,7 +59,7 @@ function getPathname() {
   return window.location.pathname.replace(/\/+$/, "") || "/";
 }
 
-function App() {
+function AppShell() {
   const [pathname, setPathname] = useState(getPathname);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const currentRoute = routes[pathname] ?? {
@@ -118,6 +120,7 @@ function App() {
       )}
     </div>
   );
+}
 
 function AppContent() {
   const { currentUser, loading } = useAuth();
@@ -146,7 +149,10 @@ function AppContent() {
   if (currentUser.role === "admin") {
     return <AdminDashboard onNavigate={navigate} />;
   }
-  return <Income onNavigate={navigate} />;
+  if (pathname === "/income") {
+    return <Income onNavigate={navigate} />;
+  }
+  return <AppShell />;
 }
 
 export default function App() {

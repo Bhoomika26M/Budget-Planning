@@ -14,7 +14,7 @@ const navigationGroups = [
   {
     label: "Planning",
     items: [
-      { id: "budgets", label: "Budget Planning", icon: "▣" },
+      { id: "budgets", label: "Budget Planning", icon: "▣", href: "/budgets" },
       { id: "savings", label: "Savings Goals", icon: "◎" },
     ],
   },
