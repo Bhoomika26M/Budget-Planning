@@ -11,6 +11,14 @@ import {
 import Home from "./pages/Home";
 import Budget from "./pages/Budget";
 import Analytics from "./pages/Analytics";
+import Income from "./pages/Income";
+import Sidebar from "./layout/Sidebar";
+import Navbar from "./layout/Navbar";
+import Savings from "./pages/Savings";
+function AppLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dark, setDark] = useState(false);
+
 import LoginForm from "./features/authentication/components/LoginForm";
 import SignupForm from "./features/authentication/components/SignupForm";
 import Sidebar from "./layout/Sidebar";
@@ -26,6 +34,11 @@ function AppLayout({ user, onLogout }) {
     "/": "Dashboard",
     "/budget": "Budget Planner",
     "/analytics": "Analytics",
+  };
+
+  const user = {
+    name: "Anna Grace",
+    role: "Student",
   };
 
   return (
@@ -47,6 +60,13 @@ function AppLayout({ user, onLogout }) {
         />
 
         <main className="app-page-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/income" element={<Income />} />
+            <Route path="/savings" element={<Savings />} />
+          </Routes>
           <Outlet />
         </main>
       </div>
@@ -54,6 +74,10 @@ function AppLayout({ user, onLogout }) {
   );
 }
 
+export default function App() {
+  return (
+    <Router>
+      <AppLayout />
 function AppRoutes() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
