@@ -11,11 +11,13 @@ from src.dashboard.transaction_model import Transaction
 from src.entities.user import User
 from src.settings.settings_model import UserSettings
 from src.expenses.expense_model import Expense
+from src.entities.budget import Budget  # noqa: F401  (registers the budgets table)
 
 from src.dashboard.transaction_routes import router as dashboard_router
 from src.settings.settings_routes import router as settings_router
 from src.expenses.expense_routes import router as expense_router
 from src.income.controller import router as income_router
+from src.budgets.controller import router as budget_router
 
 # Create tables for models that have been imported
 Base.metadata.create_all(bind=engine)
@@ -93,6 +95,7 @@ app.include_router(dashboard_router)
 app.include_router(settings_router)
 app.include_router(expense_router)
 app.include_router(income_router)
+app.include_router(budget_router)
 app.include_router(auth_router)
 
 
