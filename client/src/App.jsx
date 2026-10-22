@@ -10,6 +10,7 @@ import SavingsGoals from "./pages/SavingsGoals";
 import BudgetPlanning from "./pages/BudgetPlanning";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
+import BudgetPlanning from "./features/budget/BudgetPlanning";
 import Dashboard from "./features/dashboard/Dashboard";
 import ExpenseTracker from "./features/expenses/ExpenseTracker";
 import RecentTransactions from "./features/dashboard/RecentTransactions";
