@@ -20,26 +20,17 @@ import {
   Cell,
 } from "recharts";
 
-import {
-  Search,
-  Plus,
-  Moon,
-  Bell,
-  ChevronDown,
-} from "lucide-react";
-
 import { useAuth } from "../context/useAuth";
 import "./Income.css";
 
-function Income({ onNavigate }) {
-  const { currentUser, token, logout } = useAuth();
+function Income() {
+  const { token } = useAuth();
+  const [darkMode] = useState(() => localStorage.getItem("budgetbuddy-theme") === "dark");
   const [income, setIncome] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-   const [incomeSources, setIncomeSources] = useState([]);
+  const [incomeSources, setIncomeSources] = useState([]);
 const [showSourceForm, setShowSourceForm] = useState(false);
 const [sourceFormData, setSourceFormData] = useState({
   name: "",
@@ -256,69 +247,7 @@ const handleSourceDelete = async (sourceId) => {
 };
 
 return (
-  <div className={`income-page ${darkMode ? "dark-mode" : ""}`}>
-
-    {/* Header */}
-    <div className="income-header">
-  <div className="income-title">
-    <h1>Income</h1>
-    <p>Track your earnings, {currentUser.name.split(" ")[0]} 👋</p>
-  </div>
-
-  <div className="income-header-actions">
-
-    <div className="income-search">
-      <Search size={18} />
-      <input
-        type="text"
-        placeholder="Search..."
-      />
-    </div>
-
-    <button
-  className="header-add-transaction"
-  onClick={() => setShowForm(true)}
->
-  <Plus size={17} />
-  Add Transaction
-</button>
-
-    <button
-  className="header-icon-button"
-  title="Night light"
-  onClick={() => setDarkMode(!darkMode)}
->
-  <Moon size={19} />
-</button>
-
-    <button
-      className="header-icon-button notification-button"
-      title="Notifications"
-    >
-      <Bell size={19} />
-      <span className="notification-dot"></span>
-    </button>
-
-    <div className="profile-wrapper">
-  <button
-    className="header-profile"
-    onClick={() => setShowProfileMenu(!showProfileMenu)}
-  >
-    <span className="profile-avatar">{currentUser.name.charAt(0).toUpperCase()}</span>
-    <span>{currentUser.name}</span>
-    <ChevronDown size={15} />
-  </button>
-
-  {showProfileMenu && (
-    <div className="profile-menu">
-      <button onClick={() => onNavigate?.("/profile")}>Manage profile</button>
-      <button className="logout-button" onClick={logout}>Log out</button>
-    </div>
-  )}
-</div>
-
-  </div>
-</div>
+  <div className={`income-page${darkMode ? " dark-mode" : ""}`}>
 
     {/* Add Income Form */}
     {showForm && (

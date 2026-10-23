@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { LogOut, Shield, Users } from "lucide-react";
+import { Shield, Users } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import "./admin.css";
 
@@ -15,8 +15,8 @@ async function requestUsers(token) {
   return data;
 }
 
-export default function AdminDashboard({ onNavigate }) {
-  const { currentUser, token, logout } = useAuth();
+export default function AdminDashboard() {
+  const { currentUser, token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,14 +71,6 @@ export default function AdminDashboard({ onNavigate }) {
 
   return (
     <main className="admin-page">
-      <header className="admin-header">
-        <div className="admin-brand">
-          <span><Shield size={22} /></span>
-          <div><strong>BudgetBuddy Admin</strong><small>Signed in as {currentUser.name}</small></div>
-        </div>
-        <button className="admin-logout" onClick={() => onNavigate?.("/profile")}>Profile</button>
-        <button className="admin-logout" onClick={logout}><LogOut size={16} /> Sign out</button>
-      </header>
       <section className="admin-content">
         <div className="admin-title">
           <div><p>PLATFORM CONTROL</p><h1>User Management</h1><span>Manage registered accounts and their access levels.</span></div>

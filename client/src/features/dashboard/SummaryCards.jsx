@@ -7,8 +7,10 @@ function SummaryCards() {
   const { token } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     fetch(`${API_BASE_URL}/dashboard/transactions`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -20,29 +22,34 @@ function SummaryCards() {
         return response.json();
       })
       .then((data) => {
-        setTransactions(data);
+        if (!Array.isArray(data)) {
+          throw new Error("The transaction service returned an invalid response.");
+        }
+        if (active) {
+          setTransactions(data);
+          setError("");
+        }
       })
       .catch((error) => {
-        console.error(error);
+        if (active) setError(error.message || "Unable to load financial data.");
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   // Get current month and year
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
+  const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
 
   // Transactions from the current month
   const monthlyTransactions = transactions.filter((transaction) => {
-    const transactionDate = new Date(transaction.date);
-
-    return (
-      transactionDate.getMonth() === currentMonth &&
-      transactionDate.getFullYear() === currentYear
-    );
+    return transaction.date.startsWith(currentMonthKey);
   });
 
   // Calculate income
@@ -88,26 +95,30 @@ function SummaryCards() {
   const summaryData = [
     {
       title: "Current Balance",
-      value: loading ? "..." : formatMoney(currentBalance),
-      subtitle: loading
-        ? "Loading..."
+      value: error ? "Unavailable" : loading ? "..." : formatMoney(currentBalance),
+      subtitle: error
+        ? "Unable to load financial data"
+        : loading
+          ? "Loading..."
         : `${savingsRate.toFixed(1)}% savings rate`,
       type: "balance",
       icon: "▣",
     },
     {
       title: "Income (Month)",
-      value: loading ? "..." : formatMoney(monthlyIncome),
+      value: error ? "Unavailable" : loading ? "..." : formatMoney(monthlyIncome),
       subtitle: monthName,
       type: "income",
       icon: "↗",
     },
     {
       title: "Expenses (Month)",
-      value: loading ? "..." : formatMoney(monthlyExpenses),
-      subtitle: loading
-        ? "Loading..."
-        : `${monthlyTransactions.filter(
+      value: error ? "Unavailable" : loading ? "..." : formatMoney(monthlyExpenses),
+      subtitle: error
+        ? "Unable to load financial data"
+        : loading
+          ? "Loading..."
+          : `${monthlyTransactions.filter(
             (transaction) => transaction.type === "expense"
           ).length} transactions`,
       type: "expense",
@@ -115,8 +126,8 @@ function SummaryCards() {
     },
     {
       title: "Savings Goals",
-      value: "2",
-      subtitle: "0 completed",
+      value: "—",
+      subtitle: "Goal tracking is not connected",
       type: "savings",
       icon: "◎",
     },
@@ -124,6 +135,7 @@ function SummaryCards() {
 
   return (
     <section className="summary-cards">
+      {error && <p role="alert">{error}</p>}
       {summaryData.map((card) => (
         <div
           className={`summary-card ${card.type}`}
