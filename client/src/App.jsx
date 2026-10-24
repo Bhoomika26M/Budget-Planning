@@ -7,7 +7,6 @@ import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
 import FeatureStatusPage from "./pages/FeatureStatusPage";
 import SavingsGoals from "./pages/SavingsGoals";
-import BudgetPlanning from "./pages/BudgetPlanning";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
 import BudgetPlanning from "./features/budget/BudgetPlanning";
@@ -20,6 +19,7 @@ import PageContainer from "./layout/PageContainer";
 import Sidebar from "./layout/Sidebar";
 
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Reports = lazy(() => import("./Reports/Reports.jsx"));
 
 const routes = {
   "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
@@ -34,16 +34,7 @@ const routes = {
   },
   "/income": { id: "income", title: "Income", Page: Income },
   "/savings-goals": { id: "savings", title: "Savings Goals", Page: SavingsGoals },
-  "/reports": {
-    id: "reports",
-    title: "Reports",
-    Page: FeatureStatusPage,
-    pageProps: {
-      title: "Reports",
-      summary: "Review and export summaries of your financial activity.",
-      missing: "There is no reports page, report-generation API, or export workflow in the current app.",
-    },
-  },
+  "/reports": { id: "reports", title: "Reports", subtitle: "Generate and export reports", Page: Reports },
   "/notifications": {
     id: "notifications",
     title: "Notifications",
@@ -154,15 +145,7 @@ function AppContent() {
           Page: AccessDeniedPage,
         };
   const Page = authorizedRoute.Page;
-  const dashboardActions = authorizedRoute.id === "dashboard" ? (
-    <button
-      className="app-action-button"
-      type="button"
-      onClick={() => setShowTransactionModal(true)}
-    >
-      + Add Transaction
-    </button>
-  ) : null;
+  
 
   return (
     <div className="app-shell">
@@ -172,17 +155,21 @@ function AppContent() {
         onNavigate={navigate}
       />
       <div className="app-main">
-        <Navbar
+                <Navbar
           title={authorizedRoute.title}
           subtitle={authorizedRoute.subtitle}
-          actions={dashboardActions}
           currentUser={currentUser}
           onNavigate={navigateTo}
           onLogout={logout}
+          onAddTransaction={() => setShowTransactionModal(true)}
         />
         <PageContainer>
           <Suspense fallback={<p role="status">Loading page...</p>}>
-            <Page {...authorizedRoute.pageProps} onNavigate={navigateTo} />
+            <Page
+  {...authorizedRoute.pageProps}
+  onNavigate={navigateTo}
+  onAddTransaction={() => setShowTransactionModal(true)}
+/>
           </Suspense>
         </PageContainer>
       </div>

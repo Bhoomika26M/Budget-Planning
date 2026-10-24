@@ -22,7 +22,7 @@ const navigationGroups = [
     label: "Insights",
     items: [
       { id: "analytics", label: "Analytics", icon: "▥", href: "/analytics" },
-      { id: "reports", label: "Reports", icon: "▤", href: "/reports" },
+      { id: "reports", label: "Reports", icon: "▪", href: "/reports" },
     ],
   },
   {
