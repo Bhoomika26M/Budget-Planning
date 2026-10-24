@@ -166,3 +166,155 @@
   .ba-utilization-label { align-items: flex-start; flex-direction: column; gap: 5px; }
   .ba-legend-row { font-size: 10px; }
 }
+
+/* ==========================================
+   BUDGET PLANNER + ANALYTICS: DARK MODE
+   Figma theme color overrides
+   ========================================== */
+
+.dark-theme .ba-page {
+  --ba-ink: #EAF4FB;
+  --ba-muted: #B9D2E7;
+  --ba-border: rgba(45, 147, 199, 0.25);
+  color: #EAF4FB;
+}
+
+/* Page headings and card titles */
+.dark-theme .ba-page-heading h1,
+.dark-theme .ba-card-title,
+.dark-theme .ba-section-heading h2,
+.dark-theme .ba-category-identity h3,
+.dark-theme .ba-legend-row strong,
+.dark-theme .ba-utilization-label > span:first-child,
+.dark-theme .ba-category-metrics strong,
+.dark-theme .ba-stat-copy strong,
+.dark-theme .ba-muted strong,
+.dark-theme .ba-modal-header h3 {
+  color: #EAF4FB;
+}
+
+.dark-theme .ba-page-heading p,
+.dark-theme .ba-section-heading > span,
+.dark-theme .ba-legend-name,
+.dark-theme .ba-utilization-label > span:last-child,
+.dark-theme .ba-category-identity p,
+.dark-theme .ba-category-metrics span,
+.dark-theme .ba-stat-copy p,
+.dark-theme .ba-stat-copy small,
+.dark-theme .ba-empty-state p,
+.dark-theme .ba-muted,
+.dark-theme .ba-data-note {
+  color: #B9D2E7;
+}
+
+/* Cards and chart panels */
+.dark-theme .ba-card {
+  background: #143452;
+  border-color: rgba(45, 147, 199, 0.25);
+  color: #EAF4FB;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Donut chart center */
+.dark-theme .ba-circle-progress::before {
+  background: #143452;
+}
+
+/* Progress tracks */
+.dark-theme .ba-progress-track {
+  background: #28516B;
+}
+
+/* Buttons */
+.dark-theme .ba-secondary-button {
+  color: #EAF4FB;
+  background: #164A72;
+  border-color: #28516B;
+}
+
+.dark-theme .ba-secondary-button:hover {
+  background: #1B5B85;
+}
+
+.dark-theme .ba-icon-button {
+  color: #B9D2E7;
+}
+
+.dark-theme .ba-icon-button:hover {
+  color: #FFFFFF;
+  background: #164A72;
+}
+
+/* Form modal */
+.dark-theme .ba-modal {
+  background: #143452;
+  border-color: rgba(45, 147, 199, 0.25);
+}
+
+.dark-theme .ba-modal-header {
+  border-bottom-color: rgba(45, 147, 199, 0.25);
+}
+
+.dark-theme .ba-form label {
+  color: #EAF4FB;
+}
+
+.dark-theme .ba-form input,
+.dark-theme .ba-form select {
+  color: #EAF4FB;
+  background: #0C2A45;
+  border-color: #28516B;
+}
+
+.dark-theme .ba-form input::placeholder {
+  color: #8DBEE3;
+}
+
+/* Preserve readable warning and status colors */
+.dark-theme .ba-pill-red {
+  color: #FCA5A5;
+  background: #542D3A;
+}
+
+.dark-theme .ba-pill-amber {
+  color: #FCD34D;
+  background: #4A3B26;
+}
+
+.dark-theme .ba-pill-green {
+  color: #86EFAC;
+  background: #1E493D;
+}
+
+.dark-theme .ba-alert-red {
+  color: #FCA5A5;
+  background: #542D3A;
+  border-color: #85404A;
+}
+
+.dark-theme .ba-alert-amber {
+  color: #FCD34D;
+  background: #4A3B26;
+  border-color: #80602D;
+}
+
+.dark-theme .ba-warning-text {
+  color: #FCD34D;
+  background: #4A3B26;
+  border-color: #80602D;
+}
+
+.dark-theme .ba-form-error {
+  color: #FCA5A5;
+}
+
+/* Keep the donut ring visible */
+.dark-theme .ba-circle-progress {
+  background: conic-gradient(
+    var(--progress-color) var(--progress),
+    #28516B 0
+  );
+}
+
+/* Hero section and colored statistic icons intentionally
+   retain their existing gradients and white text. */

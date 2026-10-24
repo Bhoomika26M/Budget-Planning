@@ -9,6 +9,10 @@ from src.auth.controller import router as auth_router
 from src.expenses.entity import Expense
 from src.expenses.controller import router as expenses_router
 from src.analytics.controller import router as analytics_router
+from src.income.entity import Income
+from src.income.controller import router as income_router
+from src.savings.entity import SavingsGoal, SavingsContribution
+from src.savings.controller import router as savings_router
 
 # Importing User ensures its table is registered with SQLAlchemy.
 app = FastAPI(
@@ -38,6 +42,8 @@ app.include_router(auth_router)
 app.include_router(budgets_router)
 app.include_router(expenses_router)
 app.include_router(analytics_router)
+app.include_router(income_router)
+app.include_router(savings_router)
 @app.get("/", tags=["Health"])
 def read_root():
     return {

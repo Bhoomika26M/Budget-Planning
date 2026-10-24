@@ -7,22 +7,20 @@ import {
   Outlet,
   useLocation,
 } from "react-router-dom";
-
+import "./assets/theme-overrides.css";
 import Home from "./pages/Home";
 import Budget from "./pages/Budget";
 import Analytics from "./pages/Analytics";
 import Income from "./pages/Income";
-import Sidebar from "./layout/Sidebar";
-import Navbar from "./layout/Navbar";
 import Savings from "./pages/Savings";
-function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dark, setDark] = useState(false);
-
+import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 import LoginForm from "./features/authentication/components/LoginForm";
 import SignupForm from "./features/authentication/components/SignupForm";
+
 import Sidebar from "./layout/Sidebar";
 import Navbar from "./layout/Navbar";
+
 import api, { clearToken, getToken } from "./services/api";
 
 function AppLayout({ user, onLogout }) {
@@ -34,11 +32,8 @@ function AppLayout({ user, onLogout }) {
     "/": "Dashboard",
     "/budget": "Budget Planner",
     "/analytics": "Analytics",
-  };
-
-  const user = {
-    name: "Anna Grace",
-    role: "Student",
+    "/income": "Income",
+    "/savings": "Savings",
   };
 
   return (
@@ -60,13 +55,6 @@ function AppLayout({ user, onLogout }) {
         />
 
         <main className="app-page-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/budget" element={<Budget />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/income" element={<Income />} />
-            <Route path="/savings" element={<Savings />} />
-          </Routes>
           <Outlet />
         </main>
       </div>
@@ -74,10 +62,6 @@ function AppLayout({ user, onLogout }) {
   );
 }
 
-export default function App() {
-  return (
-    <Router>
-      <AppLayout />
 function AppRoutes() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -156,16 +140,12 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/login"
-        element={
-          user ? <Navigate to="/" replace /> : <LoginForm />
-        }
+        element={user ? <Navigate to="/" replace /> : <LoginForm />}
       />
 
       <Route
         path="/signup"
-        element={
-          user ? <Navigate to="/" replace /> : <SignupForm />
-        }
+        element={user ? <Navigate to="/" replace /> : <SignupForm />}
       />
 
       <Route
@@ -177,9 +157,13 @@ function AppRoutes() {
           )
         }
       >
-        <Route path="/" element={<Home />} />
-        <Route path="/budget" element={<Budget />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route index element={<Home />} />
+        <Route path="budget" element={<Budget />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="income" element={<Income />} />
+        <Route path="savings" element={<Savings />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="settings" element={<Settings />} />  
       </Route>
 
       <Route

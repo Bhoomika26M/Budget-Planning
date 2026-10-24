@@ -1,4 +1,5 @@
-﻿const API_BASE_URL =
+﻿
+const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
 export function getToken() {
@@ -15,6 +16,7 @@ export function clearToken() {
 
 export async function apiRequest(path, options = {}) {
   const token = getToken();
+
   const headers = {
     ...(options.body ? { "Content-Type": "application/json" } : {}),
     ...options.headers,
@@ -40,7 +42,10 @@ export async function apiRequest(path, options = {}) {
   if (response.status === 401) {
     clearToken();
     window.dispatchEvent(new Event("bb:unauthorized"));
-    throw new Error("Your session has expired or you are not logged in. Please log in again.");
+
+    throw new Error(
+      "Your session has expired or you are not logged in. Please log in again."
+    );
   }
 
   if (!response.ok) {
@@ -48,6 +53,7 @@ export async function apiRequest(path, options = {}) {
 
     try {
       const data = await response.json();
+
       message =
         typeof data.detail === "string"
           ? data.detail
@@ -69,6 +75,7 @@ export async function apiRequest(path, options = {}) {
 }
 
 export const api = {
+  // Authentication
   register: (data) =>
     apiRequest("/api/auth/register", {
       method: "POST",
@@ -83,6 +90,7 @@ export const api = {
 
   me: () => apiRequest("/api/auth/me"),
 
+  // Budgets
   getBudgets: () => apiRequest("/api/budgets/"),
 
   createBudget: (data) =>
@@ -98,8 +106,11 @@ export const api = {
     }),
 
   deleteBudget: (id) =>
-    apiRequest(`/api/budgets/${id}`, { method: "DELETE" }),
+    apiRequest(`/api/budgets/${id}`, {
+      method: "DELETE",
+    }),
 
+  // Expenses
   getExpenses: () => apiRequest("/api/expenses/"),
 
   createExpense: (data) =>
@@ -110,7 +121,58 @@ export const api = {
 
   getExpenseSummary: () => apiRequest("/api/expenses/summary"),
 
+  // Analytics
   getAnalytics: () => apiRequest("/api/analytics/overview"),
+
+  // Income
+  getIncome: () => apiRequest("/api/income/"),
+
+  createIncome: (data) =>
+    apiRequest("/api/income/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateIncome: (id, data) =>
+    apiRequest(`/api/income/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteIncome: (id) =>
+    apiRequest(`/api/income/${id}`, {
+      method: "DELETE",
+    }),
+    
+  // Savings Goals
+  getSavingsGoals: () => apiRequest("/api/savings/"),
+
+  createSavingsGoal: (data) =>
+    apiRequest("/api/savings/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateSavingsGoal: (id, data) =>
+    apiRequest(`/api/savings/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteSavingsGoal: (id) =>
+    apiRequest(`/api/savings/${id}`, {
+      method: "DELETE",
+    }),
+
+  getSavingsContributions: (goalId) =>
+    apiRequest(`/api/savings/${goalId}/contributions`),
+
+  addSavingsContribution: (goalId, data) =>
+    apiRequest(`/api/savings/${goalId}/contributions`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
 };
 
 export default api;
