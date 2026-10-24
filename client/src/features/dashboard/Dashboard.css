@@ -749,6 +749,21 @@ html[data-theme="dark"] {
   cursor: pointer;
 }
 
+.dashboard-goals-message {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 11px;
+}
+
+.dashboard-goals-message button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #438d99;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* Goals list */
 
 .savings-goals-list {

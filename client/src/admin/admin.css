@@ -1,11 +1,4 @@
-.admin-page { min-height: 100vh; color: #173b42; background: #f3f8f9; font-family: Inter, Arial, sans-serif; }
-.admin-header { height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 5vw; border-bottom: 1px solid #dce9eb; background: #fff; }
-.admin-brand { display: flex; align-items: center; gap: 11px; }
-.admin-brand > span { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: linear-gradient(135deg,#4f93a0,#166879); }
-.admin-brand strong,.admin-brand small { display: block; }
-.admin-brand strong { font-size: 15px; }
-.admin-brand small { margin-top: 3px; color: #769198; font-size: 11px; }
-.admin-logout { display: flex; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid #dce9eb; border-radius: 10px; color: #42656b; background: white; cursor: pointer; font-weight: 600; }
+.admin-page { min-height: calc(100vh - 68px); color: #173b42; background: transparent; font-family: Inter, Arial, sans-serif; }
 .admin-content { max-width: 1120px; margin: 0 auto; padding: 42px 24px; }
 .admin-title { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 26px; }
 .admin-title p { margin: 0 0 8px; color: #4f93a0; font-size: 11px; font-weight: 800; letter-spacing: .1em; }
@@ -33,4 +26,18 @@
 .admin-you { margin-left: 8px; padding: 3px 6px; border-radius: 6px; color: #166879; background: #e6f2f4; font-size: 10px; }
 .admin-empty { padding: 34px 20px; color: #789198; text-align: center; font-size: 14px; }
 .admin-security-note { display: flex; align-items: center; gap: 8px; margin-top: 17px; color: #718b90; font-size: 12px; }
-@media (max-width: 650px) { .admin-header { padding: 0 16px; } .admin-content { padding: 28px 16px; } .admin-title { align-items: flex-start; flex-direction: column; } .admin-role-summary { gap: 8px; } .admin-summary-card { align-items: flex-start; flex-direction: column-reverse; gap: 10px; padding: 13px; } .admin-summary-card strong { font-size: 20px; } .admin-users-table th,.admin-users-table td { padding: 12px; } }
+html[data-theme="dark"] .admin-page { color: var(--app-text); }
+html[data-theme="dark"] .admin-title h1,
+html[data-theme="dark"] .admin-users-heading h2 { color: var(--app-text); }
+html[data-theme="dark"] .admin-summary-card,
+html[data-theme="dark"] .admin-count,
+html[data-theme="dark"] .admin-users-card { border-color: var(--app-border); background: var(--app-surface); }
+html[data-theme="dark"] .admin-summary-card span,
+html[data-theme="dark"] .admin-title span,
+html[data-theme="dark"] .admin-users-heading p,
+html[data-theme="dark"] .admin-users-table td { color: var(--app-muted); }
+html[data-theme="dark"] .admin-users-table th { color: var(--app-muted); background: #111d30; }
+html[data-theme="dark"] .admin-users-table td,
+html[data-theme="dark"] .admin-users-heading { border-color: var(--app-border); }
+html[data-theme="dark"] .admin-users-table select { border-color: var(--app-border); color: var(--app-text); background: #111d30; }
+@media (max-width: 650px) { .admin-content { padding: 28px 16px; } .admin-title { align-items: flex-start; flex-direction: column; } .admin-role-summary { gap: 8px; } .admin-summary-card { align-items: flex-start; flex-direction: column-reverse; gap: 10px; padding: 13px; } .admin-summary-card strong { font-size: 20px; } .admin-users-table th,.admin-users-table td { padding: 12px; } }

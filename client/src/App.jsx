@@ -1,139 +1,87 @@
-
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./context/useAuth";
-
 import AdminDashboard from "./admin/AdminDashboard";
 import AuthPage from "./authentication/AuthPage";
-import Dashboard from "./features/dashboard/Dashboard";
-import AddTransactionModal from "./features/dashboard/AddTransactionModal";
-import ExpenseTracker from "./features/expenses/ExpenseTracker";
-import Settings from "./features/settings/Settings";
-import Reports from "./Reports/Reports.jsx";
 import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
-import Analytics from "./pages/Analytics";
+import FeatureStatusPage from "./pages/FeatureStatusPage";
 import SavingsGoals from "./pages/SavingsGoals";
-
+import "./App.css";
+import AddTransactionModal from "./features/dashboard/AddTransactionModal";
+import BudgetPlanning from "./features/budget/BudgetPlanning";
+import Dashboard from "./features/dashboard/Dashboard";
+import ExpenseTracker from "./features/expenses/ExpenseTracker";
+import RecentTransactions from "./features/dashboard/RecentTransactions";
+import Settings from "./features/settings/Settings";
 import Navbar from "./layout/Navbar";
 import PageContainer from "./layout/PageContainer";
 import Sidebar from "./layout/Sidebar";
-import "./App.css";
 
-function PlaceholderPage({ title, description }) {
-  return (
-    <section className="route-not-found">
-      <h2>{title}</h2>
-      <p>{description}</p>
-      <p>This page is not implemented yet.</p>
-    </section>
-  );
-}
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Reports = lazy(() => import("./Reports/Reports.jsx"));
 
 const routes = {
-  "/": {
-    id: "dashboard",
-    title: "Dashboard",
-    Page: Dashboard,
-  },
-
-  "/dashboard": {
-    id: "dashboard",
-    title: "Dashboard",
-    Page: Dashboard,
-  },
-
-  "/transactions": {
-    id: "transactions",
-    title: "Transactions",
-    Page: () => (
-      <PlaceholderPage
-        title="Transactions"
-        description="Manage and review your financial transactions."
-      />
-    ),
-  },
-
-  "/expenses": {
-    id: "expenses",
-    title: "Expenses",
-    Page: ExpenseTracker,
-  },
-
-  "/income": {
-    id: "income",
-    title: "Income",
-    Page: Income,
-  },
-
+  "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
+  "/dashboard": { id: "dashboard", title: "Dashboard", Page: Dashboard },
+  "/transactions": { id: "transactions", title: "Transactions", Page: RecentTransactions },
+  "/expenses": { id: "expenses", title: "Expenses", Page: ExpenseTracker },
+  "/analytics": { id: "analytics", title: "Analytics", Page: Analytics },
   "/budgets": {
     id: "budgets",
     title: "Budget Planning",
-    Page: () => (
-      <PlaceholderPage
-        title="Budget Planning"
-        description="Plan and track your budgets."
-      />
-    ),
+    Page: BudgetPlanning,
   },
-
-  "/savings-goals": {
-    id: "savings",
-    title: "Savings Goals",
-    Page: SavingsGoals,
-  },
-
-  "/analytics": {
-    id: "analytics",
-    title: "Analytics",
-    Page: Analytics,
-  },
-
-  "/reports": {
-    id: "reports",
-    title: "Reports",
-    Page: Reports,
-  },
-
-  // Notifications no longer opens Settings.
+  "/income": { id: "income", title: "Income", Page: Income },
+  "/savings-goals": { id: "savings", title: "Savings Goals", Page: SavingsGoals },
+  "/reports": { id: "reports", title: "Reports", Page: Reports },
   "/notifications": {
     id: "notifications",
     title: "Notifications",
-    subtitle: "View and manage your notifications.",
-    Page: () => (
-      <PlaceholderPage
-        title="Notifications"
-        description="Your notifications will appear here when this page is implemented."
-      />
-    ),
+    Page: FeatureStatusPage,
+    pageProps: {
+      title: "Notifications",
+      summary: "View account alerts and reminders in one place.",
+      missing: "A notifications inbox and delivery API are not implemented. Notification preference switches in Settings only save preferences; they do not send or display notifications.",
+    },
   },
-
-  "/profile": {
-    id: "profile",
-    title: "Profile",
-    Page: ProfilePage,
-  },
-
+  "/admin": { id: "admin", title: "User Management", Page: AdminDashboard },
   "/settings": {
     id: "settings",
     title: "Settings",
     subtitle: "Manage your account and preferences.",
     Page: Settings,
   },
+  "/profile": { id: "profile", title: "Profile", Page: ProfilePage },
 };
+
+function getPathname() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
+}
 
 function NotFoundPage({ onNavigate }) {
   return (
     <section className="route-not-found">
       <h2>Page not found</h2>
       <p>No page is registered for this address.</p>
-
       <a
         href="/"
-        onClick={(event) => onNavigate(event, "/")}
+        onClick={(event) => {
+          event.preventDefault();
+          onNavigate("/");
+        }}
       >
-        Return to Dashboard
+        Return to Home
       </a>
+    </section>
+  );
+}
+
+function AccessDeniedPage() {
+  return (
+    <section className="route-not-found" role="alert">
+      <h2>Access denied</h2>
+      <p>This page is available to administrators only.</p>
     </section>
   );
 }
@@ -148,129 +96,93 @@ function isPlainLeftClick(event) {
   );
 }
 
-function getPathname() {
-  return window.location.pathname.replace(/\/+$/, "") || "/";
-}
-
 function AppContent() {
-  const { currentUser, loading } = useAuth();
-
+  const { currentUser, loading, logout } = useAuth();
   const [pathname, setPathname] = useState(getPathname);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
-  // Initialize the global theme once when the app mounts.
   useLayoutEffect(() => {
     const savedTheme = localStorage.getItem("budgetbuddy-theme");
-    const initialTheme = savedTheme === "dark" ? "dark" : "light";
-
-    document.documentElement.dataset.theme = initialTheme;
-    document.documentElement.style.colorScheme = initialTheme;
+    document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
   }, []);
 
-  // Keep React routing synchronized with browser back/forward buttons.
   useEffect(() => {
-    const handlePopState = () => {
-      setPathname(getPathname());
-      setShowTransactionModal(false);
-    };
-
+    const handlePopState = () => setPathname(getPathname());
     window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Navigation changes the URL and page, not the theme.
-  function navigate(eventOrPath, maybePath) {
-    let path;
-
-    if (typeof eventOrPath === "string") {
-      path = eventOrPath;
-    } else {
-      const event = eventOrPath;
-      path = maybePath;
-
-      if (!event || !isPlainLeftClick(event)) {
-        return;
-      }
-
-      event.preventDefault();
+  function navigateTo(path) {
+    if (getPathname() !== path) {
+      window.history.pushState({}, "", path);
+      setPathname(path);
     }
+  }
 
-    if (!path) return;
-
-    const normalizedPath =
-      path.replace(/\/+$/, "") || "/";
-
-    if (getPathname() !== normalizedPath) {
-      window.history.pushState({}, "", normalizedPath);
-      setPathname(normalizedPath);
-      setShowTransactionModal(false);
-    }
+  function navigate(event, path) {
+    if (!isPlainLeftClick(event)) return;
+    event.preventDefault();
+    navigateTo(path);
   }
 
   if (loading) {
-    return (
-      <main className="app-loading" role="status">
-        Loading your account…
-      </main>
-    );
+    return <main className="app-loading" role="status">Loading your account…</main>;
   }
-
-  if (!currentUser) {
-    return <AuthPage />;
-  }
-
-  if (currentUser.role === "admin") {
-    return <AdminDashboard onNavigate={navigate} />;
-  }
+  if (!currentUser) return <AuthPage />;
 
   const currentRoute = routes[pathname] ?? {
     id: null,
     title: "Page not found",
     Page: NotFoundPage,
   };
-
-  const Page = currentRoute.Page;
-
-  const dashboardActions =
-    currentRoute.id === "dashboard" ? (
-      <button
-        className="app-action-button"
-        type="button"
-        onClick={() => setShowTransactionModal(true)}
-      >
-        + Add Transaction
-      </button>
-    ) : null;
+  const authorizedRoute =
+    currentRoute.id !== "admin" || currentUser.role === "admin"
+      ? currentRoute
+      : {
+          id: null,
+          title: "Access denied",
+          subtitle: "This page is available to administrators only.",
+          Page: AccessDeniedPage,
+        };
+  const Page = authorizedRoute.Page;
+  const dashboardActions = authorizedRoute.id === "dashboard" ? (
+    <button
+      className="app-action-button"
+      type="button"
+      onClick={() => setShowTransactionModal(true)}
+    >
+      + Add Transaction
+    </button>
+  ) : null;
 
   return (
     <div className="app-shell">
       <Sidebar
-        activeItem={currentRoute.id}
+        activeItem={authorizedRoute.id}
+        currentUser={currentUser}
         onNavigate={navigate}
       />
-
       <div className="app-main">
         <Navbar
-          title={currentRoute.title}
-          subtitle={currentRoute.subtitle}
+          title={authorizedRoute.title}
+          subtitle={authorizedRoute.subtitle}
           actions={dashboardActions}
+          currentUser={currentUser}
+          onNavigate={navigateTo}
+          onLogout={logout}
         />
-
         <PageContainer>
-          <Page
-            onNavigate={navigate}
-            onAddTransaction={() => setShowTransactionModal(true)}
-          />
+          <Suspense fallback={<p role="status">Loading page...</p>}>
+            <Page
+  {...authorizedRoute.pageProps}
+  onNavigate={navigateTo}
+  onAddTransaction={() => setShowTransactionModal(true)}
+/>
+          </Suspense>
         </PageContainer>
       </div>
-
       {showTransactionModal && (
-        <AddTransactionModal
-          onClose={() => setShowTransactionModal(false)}
-        />
+        <AddTransactionModal onClose={() => setShowTransactionModal(false)} />
       )}
     </div>
   );

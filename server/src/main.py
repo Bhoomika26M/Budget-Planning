@@ -11,12 +11,19 @@ from src.dashboard.transaction_model import Transaction
 from src.entities.user import User
 from src.settings.settings_model import UserSettings
 from src.expenses.expense_model import Expense
+from src.savings_goals.savings_goal_model import SavingsGoal
+from src.budgets.budget_model import Budget
 
 from src.dashboard.transaction_routes import router as dashboard_router
 from src.settings.settings_routes import router as settings_router
 from src.expenses.expense_routes import router as expense_router
 from src.income.controller import router as income_router
+
 from src.reports.controller import router as reports_router
+from src.analytics.controller import router as analytics_router
+from src.savings_goals.savings_goal_routes import router as savings_goals_router
+from src.budgets.budget_routes import router as budgets_router
+
 
 # Create tables for models that have been imported
 Base.metadata.create_all(bind=engine)
@@ -30,12 +37,20 @@ with engine.begin() as connection:
             text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'student'")
         )
     if 'created_at' not in user_columns:
-        connection.execute(
-            text(
-                'ALTER TABLE users ADD COLUMN created_at '
-                'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP'
+        if engine.dialect.name == 'sqlite':
+            connection.execute(
+                text('ALTER TABLE users ADD COLUMN created_at TIMESTAMP')
             )
-        )
+            connection.execute(
+                text('UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL')
+            )
+        else:
+            connection.execute(
+                text(
+                    'ALTER TABLE users ADD COLUMN created_at '
+                    'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP'
+                )
+            )
     for column_name, column_type in (
         ('phone', 'VARCHAR(40)'),
         ('location', 'VARCHAR(160)'),
@@ -46,6 +61,21 @@ with engine.begin() as connection:
             connection.execute(
                 text(f'ALTER TABLE users ADD COLUMN {column_name} {column_type}')
             )
+    if engine.dialect.name == 'sqlite':
+        connection.execute(
+            text(
+                'UPDATE users SET created_at = CURRENT_TIMESTAMP '
+                'WHERE created_at IS NULL'
+            )
+        )
+        connection.execute(
+            text(
+                'CREATE TRIGGER IF NOT EXISTS users_created_at_default '
+                'AFTER INSERT ON users WHEN NEW.created_at IS NULL '
+                'BEGIN UPDATE users SET created_at = CURRENT_TIMESTAMP '
+                'WHERE id = NEW.id; END'
+            )
+        )
 
 for table_name, index_name in (
     ('transactions', 'ix_transactions_user_id'),
@@ -60,6 +90,23 @@ for table_name, index_name in (
         for index in Base.metadata.tables[table_name].indexes
         if index.name == index_name
     )
+    index.create(bind=engine, checkfirst=True)
+
+expense_columns = {column['name'] for column in inspect(engine).get_columns('expenses')}
+with engine.begin() as connection:
+    if 'user_id' not in expense_columns:
+        connection.execute(
+            text('ALTER TABLE expenses ADD COLUMN user_id INTEGER REFERENCES users(id)')
+        )
+    if 'transaction_id' not in expense_columns:
+        connection.execute(
+            text(
+                'ALTER TABLE expenses ADD COLUMN transaction_id '
+                'INTEGER REFERENCES transactions(id)'
+            )
+        )
+
+for index in Base.metadata.tables['expenses'].indexes:
     index.create(bind=engine, checkfirst=True)
 
 with SessionLocal() as db:
@@ -95,7 +142,12 @@ app.include_router(settings_router)
 app.include_router(expense_router)
 app.include_router(income_router)
 app.include_router(auth_router)
+
+app.include_router(analytics_router)
+app.include_router(savings_goals_router)
+app.include_router(budgets_router)
 app.include_router(reports_router)
+
 
 
 @app.get("/")

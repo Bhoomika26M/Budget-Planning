@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, Sparkles, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Lock, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useAuth } from '../context/useAuth';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -9,7 +10,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div style={{ fontFamily: 'Poppins', fontWeight: 600, fontSize: '13px', color: 'var(--bb-text)', marginBottom: '8px' }}>{label}</div>
       {payload.map((e) => (
         <div key={e.name} style={{ fontSize: '12px', fontWeight: 600, color: e.stroke || e.fill, marginBottom: '3px' }}>
-          {e.name}: ${e.value?.toLocaleString() ?? e.value}
+          {e.name}: ₹{e.value?.toLocaleString() ?? e.value}
         </div>
       ))}
     </div>
@@ -17,23 +18,18 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const PIE_COLORS = ['#4F93A0', '#166879', '#22C55E', '#F4B400', '#EF4444', '#8B5CF6', '#EC4899', '#86B4C1'];
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-export default function Analytics({ setCurrentPage }) {
-  // MOCKED CONTEXTS: Replaced useAuth and useTheme to fix import errors and allow independent testing.
-  const authContext = null; 
-  const themeContext = null; 
-  
-  const currentUser = authContext?.currentUser || null;
-  const isDark = themeContext?.isDark || false;
+export default function Analytics() {
+  const { currentUser, token } = useAuth();
+  const isDark = document.documentElement.dataset.theme === 'dark';
   const tickColor = isDark ? '#5a9aaa' : '#86B4C1';
   
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Defaults to true during testing so you can view the dashboard
-  const isPremium = currentUser?.role === 'premium' || currentUser?.role === 'admin' || !currentUser;
+  const isPremium = currentUser?.role === 'premium' || currentUser?.role === 'admin';
 
   useEffect(() => {
     let isMounted = true;
@@ -43,9 +39,9 @@ export default function Analytics({ setCurrentPage }) {
         setIsLoading(true);
         setError(null);
         
-        // Fetches data for user 1 by default when tested independently
-        const query = currentUser?.id ? `?user_id=${encodeURIComponent(currentUser.id)}` : '?user_id=1';
-        const response = await fetch(`${API_BASE_URL}/api/analytics${query}`);
+        const response = await fetch(`${API_BASE_URL}/api/analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         
         if (!response.ok) {
           throw new Error(`Analytics request failed with status: ${response.status}`);
@@ -62,12 +58,10 @@ export default function Analytics({ setCurrentPage }) {
 
     if (isPremium) {
       fetchAnalytics();
-    } else {
-      setIsLoading(false);
     }
     
     return () => { isMounted = false; };
-  }, [currentUser?.id, isPremium]);
+  }, [token, isPremium]);
 
   if (!isPremium) {
     return (
@@ -93,11 +87,7 @@ export default function Analytics({ setCurrentPage }) {
             </div>
           ))}
         </div>
-        <button
-          onClick={() => setCurrentPage?.('settings')}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #F4B400, #e09000)', border: 'none', borderRadius: '14px', padding: '14px 28px', fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'Poppins', boxShadow: '0 6px 24px rgba(244,180,0,0.35)' }}>
-          <Sparkles size={17} /> Upgrade to Premium — Free
-        </button>
+        <p>Premium access is required. The upgrade flow is not connected yet.</p>
       </div>
     );
   }
@@ -111,10 +101,10 @@ export default function Analytics({ setCurrentPage }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         {[
-          { label: 'Total Income', value: `$${(total_income || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: '#22C55E' },
-          { label: 'Total Expenses', value: `$${(total_expenses || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: '#EF4444' },
+          { label: 'Total Income', value: `₹${(total_income || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#22C55E' },
+          { label: 'Total Expenses', value: `₹${(total_expenses || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#EF4444' },
           { label: 'Savings Rate', value: `${(savings_rate || 0).toFixed(1)}%`, color: '#4F93A0' },
-          { label: 'Avg Expense', value: `$${(avg_tx_amount || 0).toFixed(2)}`, color: '#8B5CF6' },
+          { label: 'Avg Expense', value: `₹${(avg_tx_amount || 0).toFixed(2)}`, color: '#8B5CF6' },
         ].map(k => (
           <div key={k.label} className="solid-card" style={{ padding: '20px 22px' }}>
             <div style={{ fontSize: '12px', color: 'var(--bb-text-muted)', fontWeight: 500, marginBottom: '8px' }}>{k.label}</div>
@@ -141,7 +131,7 @@ export default function Analytics({ setCurrentPage }) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--bb-border-sub)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: tickColor }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: tickColor }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                <YAxis tick={{ fontSize: 10, fill: tickColor }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v}`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Area type="monotone" dataKey="income" stroke="#22C55E" strokeWidth={2.5} fill="url(#ig)" name="Income" dot={false} />
@@ -157,7 +147,7 @@ export default function Analytics({ setCurrentPage }) {
                 <LineChart data={monthly_trend} margin={{ top: 5, right: 5, left: -18, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--bb-border-sub)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: tickColor }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: tickColor }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                  <YAxis tick={{ fontSize: 10, fill: tickColor }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v}`} />
                   <Tooltip content={<CustomTooltip />} />
                   <Line type="monotone" dataKey="savings" stroke="#4F93A0" strokeWidth={2.5} dot={{ fill: '#4F93A0', r: 4 }} name="Savings" />
                 </LineChart>
@@ -174,7 +164,7 @@ export default function Analytics({ setCurrentPage }) {
                     <Pie data={expense_breakdown} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={3} dataKey="value">
                       {expense_breakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
                     </Pie>
-                    <Tooltip formatter={(v) => [`$${v.toFixed(2)}`, '']} contentStyle={{ background: 'var(--bb-surface)', border: 'none', borderRadius: '10px' }} />
+                    <Tooltip formatter={(v) => [`₹${v.toFixed(2)}`, '']} contentStyle={{ background: 'var(--bb-surface)', border: 'none', borderRadius: '10px' }} />
                   </PieChart>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {expense_breakdown.slice(0, 5).map((b, i) => (
@@ -183,7 +173,7 @@ export default function Analytics({ setCurrentPage }) {
                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
                           <span style={{ color: 'var(--bb-text)' }}>{b.name}</span>
                         </div>
-                        <span style={{ color: 'var(--bb-text-muted)', fontWeight: 600 }}>${b.value.toFixed(0)}</span>
+                        <span style={{ color: 'var(--bb-text-muted)', fontWeight: 600 }}>₹{b.value.toFixed(0)}</span>
                       </div>
                     ))}
                   </div>

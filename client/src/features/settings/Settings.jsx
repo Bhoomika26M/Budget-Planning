@@ -14,7 +14,7 @@ const defaultSettings = {
   weeklyReport: false,
   monthlyReport: true,
   darkMode: false,
-  twoFactorAuth: true,
+  twoFactorAuth: false,
   currency: "INR",
   language: "English",
 };
@@ -80,26 +80,18 @@ useEffect(() => {
   loadSettings();
 }, [token]);
 
-useEffect(() => {
-  document.documentElement.dataset.theme = preferences.darkMode ? "dark" : "light";
-}, [preferences.darkMode]);
-
-  
-
 async function updateSetting(key, value) {
-  const previous = { ...preferences };
-  const updated = { ...previous, [key]: value };
+// Two-factor authentication is not supported by the current backend.
+if (key === "twoFactorAuth") {
+  setStatus(
+    "Two-factor authentication is not connected to the backend yet."
+  );
+  return;
+}
 
-  // Two-factor authentication is not supported by the current backend.
-  if (key === "twoFactorAuth") {
-    setPreferences(updated);
-    setStatus(
-      "Two-factor authentication is not connected to the backend yet."
-    );
-    return;
-  }
-
-  setPreferences(updated);
+const previous = { ...preferences };
+const updated = { ...previous, [key]: value };
+setPreferences(updated);
   setStatus("");
 
   const payload = {
@@ -166,6 +158,7 @@ async function updateSetting(key, value) {
         role="switch"
         aria-checked={checked}
         aria-label={key}
+        disabled={key === "twoFactorAuth"}
         onClick={() => updateSetting(key, !checked)}
       >
         <span />
@@ -419,7 +412,7 @@ async function updateSetting(key, value) {
         <div className="settings-row">
           <div>
             <h3>Two-Factor Authentication</h3>
-            <p>Extra layer of security for your account</p>
+            <p>Not available yet; this account is not protected by two-factor authentication.</p>
           </div>
           {toggle("twoFactorAuth")}
         </div>

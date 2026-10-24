@@ -1,0 +1,553 @@
+﻿diff --cc client/src/App.jsx
+index 3a7433e,e2f75ae..0000000
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@@ -1,138 -1,86 +1,211 @@@
+++<<<<<<< HEAD
+ +
+ +import React, { useEffect, useLayoutEffect, useState } from "react";
+++=======
++ import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
+++>>>>>>> origin/main-Group-E
+  import { AuthProvider } from "./context/AuthContext";
+  import { useAuth } from "./context/useAuth";
+ +
+  import AdminDashboard from "./admin/AdminDashboard";
+  import AuthPage from "./authentication/AuthPage";
+++<<<<<<< HEAD
+++=======
++ import Income from "./income/Income";
++ import ProfilePage from "./profile/ProfilePage";
++ import FeatureStatusPage from "./pages/FeatureStatusPage";
++ import SavingsGoals from "./pages/SavingsGoals";
++ import BudgetPlanning from "./pages/BudgetPlanning";
++ import "./App.css";
++ import AddTransactionModal from "./features/dashboard/AddTransactionModal";
++ import BudgetPlanning from "./features/budget/BudgetPlanning";
+++>>>>>>> origin/main-Group-E
+  import Dashboard from "./features/dashboard/Dashboard";
+ +import AddTransactionModal from "./features/dashboard/AddTransactionModal";
+  import ExpenseTracker from "./features/expenses/ExpenseTracker";
++ import RecentTransactions from "./features/dashboard/RecentTransactions";
+  import Settings from "./features/settings/Settings";
+ +import Reports from "./Reports/Reports.jsx";
+ +import Income from "./income/Income";
+ +import ProfilePage from "./profile/ProfilePage";
+ +import Analytics from "./pages/Analytics";
+ +import SavingsGoals from "./pages/SavingsGoals";
+ +
+  import Navbar from "./layout/Navbar";
+  import PageContainer from "./layout/PageContainer";
+  import Sidebar from "./layout/Sidebar";
+ +import "./App.css";
+ +
+ +function PlaceholderPage({ title, description }) {
+ +  return (
+ +    <section className="route-not-found">
+ +      <h2>{title}</h2>
+ +      <p>{description}</p>
+ +      <p>This page is not implemented yet.</p>
+ +    </section>
+ +  );
+ +}
+  
++ const Analytics = lazy(() => import("./pages/Analytics"));
++ 
+  const routes = {
+++<<<<<<< HEAD
+ +  "/": {
+ +    id: "dashboard",
+ +    title: "Dashboard",
+ +    Page: Dashboard,
+ +  },
+ +
+ +  "/dashboard": {
+ +    id: "dashboard",
+ +    title: "Dashboard",
+ +    Page: Dashboard,
+ +  },
+ +
+ +  "/transactions": {
+ +    id: "transactions",
+ +    title: "Transactions",
+ +    Page: () => (
+ +      <PlaceholderPage
+ +        title="Transactions"
+ +        description="Manage and review your financial transactions."
+ +      />
+ +    ),
+ +  },
+ +
+ +  "/expenses": {
+ +    id: "expenses",
+ +    title: "Expenses",
+ +    Page: ExpenseTracker,
+ +  },
+ +
+ +  "/income": {
+ +    id: "income",
+ +    title: "Income",
+ +    Page: Income,
+ +  },
+ +
+ +  "/budgets": {
+ +    id: "budgets",
+ +    title: "Budget Planning",
+ +    Page: () => (
+ +      <PlaceholderPage
+ +        title="Budget Planning"
+ +        description="Plan and track your budgets."
+ +      />
+ +    ),
+ +  },
+ +
+ +  "/savings-goals": {
+ +    id: "savings",
+ +    title: "Savings Goals",
+ +    Page: SavingsGoals,
+ +  },
+ +
+ +  "/analytics": {
+ +    id: "analytics",
+ +    title: "Analytics",
+ +    Page: Analytics,
+ +  },
+ +
+ +  "/reports": {
+ +    id: "reports",
+ +    title: "Reports",
+ +    Page: Reports,
+ +  },
+ +
+ +  // Notifications no longer opens Settings.
+ +  "/notifications": {
+ +    id: "notifications",
+ +    title: "Notifications",
+ +    subtitle: "View and manage your notifications.",
+ +    Page: () => (
+ +      <PlaceholderPage
+ +        title="Notifications"
+ +        description="Your notifications will appear here when this page is implemented."
+ +      />
+ +    ),
+ +  },
+ +
+ +  "/profile": {
+ +    id: "profile",
+ +    title: "Profile",
+ +    Page: ProfilePage,
+ +  },
+ +
+++=======
++   "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
++   "/dashboard": { id: "dashboard", title: "Dashboard", Page: Dashboard },
++   "/transactions": { id: "transactions", title: "Transactions", Page: RecentTransactions },
++   "/expenses": { id: "expenses", title: "Expenses", Page: ExpenseTracker },
++   "/analytics": { id: "analytics", title: "Analytics", Page: Analytics },
++   "/budgets": {
++     id: "budgets",
++     title: "Budget Planning",
++     Page: BudgetPlanning,
++   },
++   "/income": { id: "income", title: "Income", Page: Income },
++   "/savings-goals": { id: "savings", title: "Savings Goals", Page: SavingsGoals },
++   "/reports": {
++     id: "reports",
++     title: "Reports",
++     Page: FeatureStatusPage,
++     pageProps: {
++       title: "Reports",
++       summary: "Review and export summaries of your financial activity.",
++       missing: "There is no reports page, report-generation API, or export workflow in the current app.",
++     },
++   },
++   "/notifications": {
++     id: "notifications",
++     title: "Notifications",
++     Page: FeatureStatusPage,
++     pageProps: {
++       title: "Notifications",
++       summary: "View account alerts and reminders in one place.",
++       missing: "A notifications inbox and delivery API are not implemented. Notification preference switches in Settings only save preferences; they do not send or display notifications.",
++     },
++   },
++   "/admin": { id: "admin", title: "User Management", Page: AdminDashboard },
+++>>>>>>> origin/main-Group-E
+    "/settings": {
+      id: "settings",
+      title: "Settings",
+      subtitle: "Manage your account and preferences.",
+      Page: Settings,
+    },
+++<<<<<<< HEAD
+++=======
++   "/profile": { id: "profile", title: "Profile", Page: ProfilePage },
+++>>>>>>> origin/main-Group-E
+  };
+  
++ function getPathname() {
++   return window.location.pathname.replace(/\/+$/, "") || "/";
++ }
++ 
+  function NotFoundPage({ onNavigate }) {
+    return (
+      <section className="route-not-found">
+        <h2>Page not found</h2>
+        <p>No page is registered for this address.</p>
+++<<<<<<< HEAD
+ +
+ +      <a
+ +        href="/"
+ +        onClick={(event) => onNavigate(event, "/")}
+ +      >
+ +        Return to Dashboard
+++=======
++       <a
++         href="/"
++         onClick={(event) => {
++           event.preventDefault();
++           onNavigate("/");
++         }}
++       >
++         Return to Home
+++>>>>>>> origin/main-Group-E
+        </a>
+      </section>
+    );
+@@@ -148,129 -105,89 +230,206 @@@ function isPlainLeftClick(event) 
+    );
+  }
+  
+++<<<<<<< HEAD
+ +function getPathname() {
+ +  return window.location.pathname.replace(/\/+$/, "") || "/";
+ +}
+ +
+ +function AppContent() {
+ +  const { currentUser, loading } = useAuth();
+ +
+ +  const [pathname, setPathname] = useState(getPathname);
+ +  const [showTransactionModal, setShowTransactionModal] = useState(false);
+ +
+ +  // Initialize the global theme once when the app mounts.
+ +  useLayoutEffect(() => {
+ +    const savedTheme = localStorage.getItem("budgetbuddy-theme");
+ +    const initialTheme = savedTheme === "dark" ? "dark" : "light";
+ +
+ +    document.documentElement.dataset.theme = initialTheme;
+ +    document.documentElement.style.colorScheme = initialTheme;
+ +  }, []);
+ +
+ +  // Keep React routing synchronized with browser back/forward buttons.
+ +  useEffect(() => {
+ +    const handlePopState = () => {
+ +      setPathname(getPathname());
+ +      setShowTransactionModal(false);
+ +    };
+ +
+ +    window.addEventListener("popstate", handlePopState);
+ +
+ +    return () => {
+ +      window.removeEventListener("popstate", handlePopState);
+ +    };
+ +  }, []);
+ +
+ +  // Navigation changes the URL and page, not the theme.
+ +  function navigate(eventOrPath, maybePath) {
+ +    let path;
+ +
+ +    if (typeof eventOrPath === "string") {
+ +      path = eventOrPath;
+ +    } else {
+ +      const event = eventOrPath;
+ +      path = maybePath;
+ +
+ +      if (!event || !isPlainLeftClick(event)) {
+ +        return;
+ +      }
+ +
+ +      event.preventDefault();
+ +    }
+ +
+ +    if (!path) return;
+ +
+ +    const normalizedPath =
+ +      path.replace(/\/+$/, "") || "/";
+ +
+ +    if (getPathname() !== normalizedPath) {
+ +      window.history.pushState({}, "", normalizedPath);
+ +      setPathname(normalizedPath);
+ +      setShowTransactionModal(false);
+ +    }
+ +  }
+ +
+ +  if (loading) {
+ +    return (
+ +      <main className="app-loading" role="status">
+ +        Loading your accountΓÇª
+ +      </main>
+ +    );
+ +  }
+ +
+ +  if (!currentUser) {
+ +    return <AuthPage />;
+ +  }
+ +
+ +  if (currentUser.role === "admin") {
+ +    return <AdminDashboard onNavigate={navigate} />;
+ +  }
+ +
+ +  const currentRoute = routes[pathname] ?? {
+ +    id: null,
+ +    title: "Page not found",
+ +    Page: NotFoundPage,
+ +  };
+ +
+ +  const Page = currentRoute.Page;
+ +
+ +  const dashboardActions =
+ +    currentRoute.id === "dashboard" ? (
+ +      <button
+ +        className="app-action-button"
+ +        type="button"
+ +        onClick={() => setShowTransactionModal(true)}
+ +      >
+ +        + Add Transaction
+ +      </button>
+ +    ) : null;
+++=======
++ function AppContent() {
++   const { currentUser, loading, logout } = useAuth();
++   const [pathname, setPathname] = useState(getPathname);
++   const [showTransactionModal, setShowTransactionModal] = useState(false);
++ 
++   useLayoutEffect(() => {
++     const savedTheme = localStorage.getItem("budgetbuddy-theme");
++     document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
++   }, []);
++ 
++   useEffect(() => {
++     const handlePopState = () => setPathname(getPathname());
++     window.addEventListener("popstate", handlePopState);
++     return () => window.removeEventListener("popstate", handlePopState);
++   }, []);
++ 
++   function navigateTo(path) {
++     if (getPathname() !== path) {
++       window.history.pushState({}, "", path);
++       setPathname(path);
++     }
++   }
++ 
++   function navigate(event, path) {
++     if (!isPlainLeftClick(event)) return;
++     event.preventDefault();
++     navigateTo(path);
++   }
++ 
++   if (loading) {
++     return <main className="app-loading" role="status">Loading your accountΓÇª</main>;
++   }
++   if (!currentUser) return <AuthPage />;
++ 
++   const currentRoute = routes[pathname] ?? {
++     id: null,
++     title: "Page not found",
++     Page: NotFoundPage,
++   };
++   const authorizedRoute =
++     currentRoute.id !== "admin" || currentUser.role === "admin"
++       ? currentRoute
++       : {
++           id: null,
++           title: "Access denied",
++           subtitle: "This page is available to administrators only.",
++           Page: AccessDeniedPage,
++         };
++   const Page = authorizedRoute.Page;
++   const dashboardActions = authorizedRoute.id === "dashboard" ? (
++     <button
++       className="app-action-button"
++       type="button"
++       onClick={() => setShowTransactionModal(true)}
++     >
++       + Add Transaction
++     </button>
++   ) : null;
+++>>>>>>> origin/main-Group-E
+  
+    return (
+      <div className="app-shell">
+        <Sidebar
+++<<<<<<< HEAD
+ +        activeItem={currentRoute.id}
+ +        onNavigate={navigate}
+ +      />
+ +
+++=======
++         activeItem={authorizedRoute.id}
++         currentUser={currentUser}
++         onNavigate={navigate}
++       />
+++>>>>>>> origin/main-Group-E
+        <div className="app-main">
+          <Navbar
+-           title={currentRoute.title}
+-           subtitle={currentRoute.subtitle}
++           title={authorizedRoute.title}
++           subtitle={authorizedRoute.subtitle}
+            actions={dashboardActions}
++           currentUser={currentUser}
++           onNavigate={navigateTo}
++           onLogout={logout}
+          />
+ +
+          <PageContainer>
+++<<<<<<< HEAD
+ +          <Page
+ +            onNavigate={navigate}
+ +            onAddTransaction={() => setShowTransactionModal(true)}
+ +          />
+++=======
++           <Suspense fallback={<p role="status">Loading page...</p>}>
++             <Page {...authorizedRoute.pageProps} onNavigate={navigateTo} />
++           </Suspense>
+++>>>>>>> origin/main-Group-E
+          </PageContainer>
+        </div>
+ +
+        {showTransactionModal && (
+ -        <AddTransactionModal onClose={() => setShowTransactionModal(false)} />
+ +        <AddTransactionModal
+ +          onClose={() => setShowTransactionModal(false)}
+ +        />
+        )}
+      </div>
+    );
+diff --cc client/src/layout/Sidebar.jsx
+index 69151b9,aec7121..0000000
+--- a/client/src/layout/Sidebar.jsx
++++ b/client/src/layout/Sidebar.jsx
+@@@ -2,9 -1,7 +2,13 @@@
+  const navigationGroups = [
+    {
+      label: "Overview",
+++<<<<<<< HEAD
+ +    items: [
+ +      { id: "dashboard", label: "Dashboard", icon: "Γûª", href: "/" },
+ +    ],
+++=======
++     items: [{ id: "dashboard", label: "Dashboard", icon: "Γûª", href: "/dashboard" }],
+++>>>>>>> origin/main-Group-E
+    },
+    {
+      label: "Finance",
+@@@ -43,13 -41,11 +48,21 @@@ function Sidebar({ activeItem, currentU
+      <aside className="app-sidebar">
+        <a
+          className="brand-block"
+++<<<<<<< HEAD
+ +        href="/"
+ +        onClick={(event) => onNavigate(event, "/")}
+ +      >
+ +        <span className="brand-mark" aria-hidden="true">
+ +          B
+ +        </span>
+ +
+++=======
++         href="/dashboard"
++         aria-label="BudgetBuddy home"
++         onClick={(event) => onNavigate(event, "/dashboard")}
++       >
++         <span className="brand-mark" aria-hidden="true">B</span>
+++>>>>>>> origin/main-Group-E
+          <span className="brand-copy">
+            <span className="brand-name">BudgetBuddy</span>
+            <span className="brand-subtitle">Student Finance</span>
+@@@ -58,31 -54,26 +71,50 @@@
+  
+        <nav className="app-nav" aria-label="Main navigation">
+          {navigationGroups.map((group) => (
+ -          <section className="app-nav-group" key={group.label} aria-label={group.label}>
+ +          <section
+ +            className="app-nav-group"
+ +            key={group.label}
+ +            aria-label={group.label}
+ +          >
+              <h2 className="app-nav-group-title">{group.label}</h2>
+++<<<<<<< HEAD
+ +
+ +            {group.items.map((item) => (
+ +              <a
+ +                className={`app-nav-link${
+ +                  activeItem === item.id ? " active" : ""
+ +                }`}
+ +                href={item.href}
+ +                key={item.id}
+ +                aria-current={
+ +                  activeItem === item.id ? "page" : undefined
+ +                }
+ +                onClick={(event) => onNavigate(event, item.href)}
+ +              >
+ +                <span className="app-nav-icon" aria-hidden="true">
+ +                  {item.icon}
+++=======
++             {group.items.filter((item) => !item.adminOnly || currentUser?.role === "admin").map((item) => (
++               item.href ? (
++                 <a
++                   className={`app-nav-link${activeItem === item.id ? " active" : ""}`}
++                   href={item.href}
++                   key={item.id}
++                   aria-current={activeItem === item.id ? "page" : undefined}
++                   onClick={(event) => onNavigate(event, item.href)}
++                 >
++                   <span className="app-nav-icon" aria-hidden="true">{item.icon}</span>
++                   <span>{item.label}</span>
++                 </a>
++               ) : (
++                 <span className="app-nav-link unavailable" key={item.id} aria-disabled="true">
++                   <span className="app-nav-icon" aria-hidden="true">{item.icon}</span>
++                   <span>{item.label}</span>
+++>>>>>>> origin/main-Group-E
+                  </span>
+ -              )
+ +
+ +                <span>{item.label}</span>
+ +              </a>
+              ))}
+            </section>
+          ))}
+diff --cc server/src/main.py
+index ed5d294,2fa9504..0000000
+--- a/server/src/main.py
++++ b/server/src/main.py
+@@@ -16,7 -18,9 +18,13 @@@ from src.dashboard.transaction_routes i
+  from src.settings.settings_routes import router as settings_router
+  from src.expenses.expense_routes import router as expense_router
+  from src.income.controller import router as income_router
+++<<<<<<< HEAD
+ +from src.reports.controller import router as reports_router
+++=======
++ from src.analytics.controller import router as analytics_router
++ from src.savings_goals.savings_goal_routes import router as savings_goals_router
++ from src.budgets.budget_routes import router as budgets_router
+++>>>>>>> origin/main-Group-E
+  
+  # Create tables for models that have been imported
+  Base.metadata.create_all(bind=engine)
+@@@ -94,8 -138,11 +142,15 @@@ app.include_router(dashboard_router
+  app.include_router(settings_router)
+  app.include_router(expense_router)
+  app.include_router(income_router)
++ app.include_router(budget_router)
+  app.include_router(auth_router)
+++<<<<<<< HEAD
+ +app.include_router(reports_router)
+++=======
++ app.include_router(analytics_router)
++ app.include_router(savings_goals_router)
++ app.include_router(budgets_router)
+++>>>>>>> origin/main-Group-E
+  
+  
+  @app.get("/")

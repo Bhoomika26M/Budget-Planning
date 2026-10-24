@@ -1,50 +1,68 @@
-from collections import defaultdict
 from datetime import date
-from decimal import Decimal
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.entities.transaction import Transaction
+from src.dashboard.transaction_model import Transaction
 
 
-def get_analytics(session: Session, user_id: int | None = None) -> dict:
-    query = select(Transaction).order_by(Transaction.transaction_date)
-    if user_id is not None:
-        query = query.where(Transaction.user_id == user_id)
-    transactions = session.scalars(query).all()
+def get_analytics(session: Session, user_id: int) -> dict:
+    transactions = (
+        session.query(Transaction)
+        .filter(Transaction.user_id == user_id)
+        .order_by(Transaction.date, Transaction.id)
+        .all()
+    )
+    income_transactions = [
+        transaction for transaction in transactions if transaction.type == "income"
+    ]
+    expense_transactions = [
+        transaction for transaction in transactions if transaction.type == "expense"
+    ]
+    total_income = sum(float(transaction.amount) for transaction in income_transactions)
+    total_expenses = sum(float(transaction.amount) for transaction in expense_transactions)
 
-    income = sum((item.amount for item in transactions if item.type == 'income'), Decimal('0'))
-    expenses = sum((abs(item.amount) for item in transactions if item.type == 'expense'), Decimal('0'))
-    expense_items = [item for item in transactions if item.type == 'expense']
-    categories = defaultdict(Decimal)
-    for item in expense_items:
-        categories[item.category] += abs(item.amount)
+    monthly_totals: dict[str, dict[str, float]] = {}
+    for transaction in transactions:
+        if transaction.type not in {"income", "expense"}:
+            continue
+        month_key = transaction.date.strftime("%Y-%m")
+        totals = monthly_totals.setdefault(month_key, {"income": 0.0, "expenses": 0.0})
+        bucket = "income" if transaction.type == "income" else "expenses"
+        totals[bucket] += float(transaction.amount)
 
-    today = date.today()
-    months = []
-    year, month = today.year, today.month
-    for _ in range(6):
-        months.append((year, month))
-        month -= 1
-        if month == 0:
-            month, year = 12, year - 1
-    months.reverse()
-
-    monthly = []
-    for month_year, month_number in months:
-        month_income = sum((item.amount for item in transactions if item.type == 'income' and item.transaction_date.year == month_year and item.transaction_date.month == month_number), Decimal('0'))
-        month_expenses = sum((abs(item.amount) for item in transactions if item.type == 'expense' and item.transaction_date.year == month_year and item.transaction_date.month == month_number), Decimal('0'))
-        monthly.append({'month': date(month_year, month_number, 1).strftime('%b'), 'income': float(month_income), 'expenses': float(month_expenses), 'savings': float(month_income - month_expenses)})
+    category_totals: dict[str, float] = {}
+    for transaction in expense_transactions:
+        category_totals[transaction.category] = (
+            category_totals.get(transaction.category, 0.0) + float(transaction.amount)
+        )
 
     return {
-        'summary': {
-            'total_income': float(income),
-            'total_expenses': float(expenses),
-            'savings_rate': float((income - expenses) / income * 100) if income else 0,
-            'average_expense': float(expenses / len(expense_items)) if expense_items else 0,
-            'transaction_count': len(transactions),
-        },
-        'monthly_trend': monthly,
-        'expense_breakdown': [{'name': name, 'value': float(value)} for name, value in sorted(categories.items(), key=lambda entry: entry[1], reverse=True)],
+        "has_data": bool(transactions),
+        "total_income": total_income,
+        "total_expenses": total_expenses,
+        "savings_rate": (
+            ((total_income - total_expenses) / total_income) * 100
+            if total_income > 0
+            else 0.0
+        ),
+        "avg_tx_amount": (
+            total_expenses / len(expense_transactions) if expense_transactions else 0.0
+        ),
+        "monthly_trend": [
+            {
+                "month": date.fromisoformat(f"{month_key}-01").strftime("%b %Y"),
+                "income": totals["income"],
+                "expenses": totals["expenses"],
+                "savings": totals["income"] - totals["expenses"],
+            }
+            for month_key, totals in sorted(monthly_totals.items())
+        ],
+        "expense_breakdown": [
+            {"name": name, "value": value}
+            for name, value in sorted(
+                category_totals.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+        ],
     }

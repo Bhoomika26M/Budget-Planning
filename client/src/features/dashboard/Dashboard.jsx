@@ -6,7 +6,7 @@ import RecentTransactions from "./RecentTransactions";
 import BudgetProgress from "./BudgetProgress";
 import SavingsGoals from "./SavingsGoals";
 
-function Dashboard() {
+function Dashboard({ onNavigate }) {
   return (
     <div className="dashboard-layout">
 
@@ -24,7 +24,7 @@ function Dashboard() {
             <BudgetProgress />
           </section>
            
-           <SavingsGoals />
+           <SavingsGoals onNavigate={onNavigate} />
 
           </main>
       </div>
