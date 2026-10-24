@@ -21,6 +21,7 @@ import {
 } from "recharts";
 
 import { useAuth } from "../context/useAuth";
+import NotificationBell from "../features/notifications/NotificationBell";
 import "./Income.css";
 
 function Income() {
@@ -248,6 +249,13 @@ const handleSourceDelete = async (sourceId) => {
 
 return (
   <div className={`income-page${darkMode ? " dark-mode" : ""}`}>
+
+    {/* Notification bell */}
+    <div className="income-header">
+      <div className="income-header-actions" style={{ justifyContent: "flex-end" }}>
+        <NotificationBell />
+      </div>
+    </div>
 
     {/* Add Income Form */}
     {showForm && (

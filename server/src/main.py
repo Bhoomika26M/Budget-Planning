@@ -11,6 +11,7 @@ from src.dashboard.transaction_model import Transaction
 from src.entities.user import User
 from src.settings.settings_model import UserSettings
 from src.expenses.expense_model import Expense
+from src.notifications.notification_model import Notification
 from src.savings_goals.savings_goal_model import SavingsGoal
 from src.budgets.budget_model import Budget
 
@@ -18,6 +19,7 @@ from src.dashboard.transaction_routes import router as dashboard_router
 from src.settings.settings_routes import router as settings_router
 from src.expenses.expense_routes import router as expense_router
 from src.income.controller import router as income_router
+from src.notifications.notification_routes import router as notification_router
 from src.analytics.controller import router as analytics_router
 from src.savings_goals.savings_goal_routes import router as savings_goals_router
 from src.budgets.budget_routes import router as budgets_router
@@ -138,7 +140,7 @@ app.include_router(dashboard_router)
 app.include_router(settings_router)
 app.include_router(expense_router)
 app.include_router(income_router)
-app.include_router(budget_router)
+app.include_router(notification_router)
 app.include_router(auth_router)
 app.include_router(analytics_router)
 app.include_router(savings_goals_router)
