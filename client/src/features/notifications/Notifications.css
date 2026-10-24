@@ -195,24 +195,10 @@
 .np-header-top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
   gap: 16px;
   padding: 20px 22px 16px;
-}
-
-.np-heading h1 {
-  margin: 0 0 4px;
-  font-size: 22px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  color: var(--app-text);
-}
-
-.np-heading p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--app-muted);
 }
 
 .np-header-tools {
@@ -326,45 +312,6 @@
 .np-bell-zero {
   background: #cbd5e1;
   color: #334155;
-}
-
-.np-profile {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding-left: 10px;
-  border-left: 1px solid var(--app-border);
-}
-
-.np-profile-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e5f0f2;
-  color: #0f6574;
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.np-profile-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.np-profile-text strong {
-  font-size: 12.5px;
-  font-weight: 650;
-  color: var(--app-text);
-}
-
-.np-profile-text small {
-  font-size: 11px;
-  color: var(--app-muted);
 }
 
 /* ---------- Category tabs ---------- */
@@ -903,10 +850,6 @@
     min-width: 0;
   }
 
-  .np-profile-text {
-    display: none;
-  }
-
   .np-card {
     flex-wrap: wrap;
   }
@@ -1069,11 +1012,6 @@ html[data-theme="dark"] .np-button-primary {
 
 html[data-theme="dark"] .np-button-primary:hover:not(:disabled) {
   background: #3aa0b2;
-}
-
-html[data-theme="dark"] .np-profile-avatar {
-  background: #173a44;
-  color: #7fd0dd;
 }
 
 html[data-theme="dark"] .np-error {

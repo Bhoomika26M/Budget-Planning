@@ -71,7 +71,7 @@ function matchesDate(notification, dateFilter) {
 }
 
 function NotificationsPage() {
-  const { token, currentUser } = useAuth();
+  const { token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   // Load only when a real token exists; without one, surface the existing
   // error state immediately instead of spinning forever or faking data.
@@ -380,11 +380,6 @@ function NotificationsPage() {
     <main className="notifications-page">
       <header className="np-header">
         <div className="np-header-top">
-          <div className="np-heading">
-            <h1>Notifications</h1>
-            <p>Stay updated with your financial activities and important alerts.</p>
-          </div>
-
           <div className="np-header-tools">
             <div className="np-search">
               <Search size={15} aria-hidden="true" />
@@ -444,18 +439,6 @@ function NotificationsPage() {
                 {unread === 0 ? "No unread notifications" : `${unread} unread notifications`}
               </span>
             </div>
-
-            {currentUser && (
-              <div className="np-profile">
-                <span className="np-profile-avatar" aria-hidden="true">
-                  {(currentUser.name || "?").charAt(0).toUpperCase()}
-                </span>
-                <span className="np-profile-text">
-                  <strong>{currentUser.name}</strong>
-                  <small>{currentUser.email}</small>
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
