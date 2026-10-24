@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   BookOpen,
   Check,
   Crown,
   GraduationCap,
-  LogOut,
   Mail,
   MapPin,
   Phone,
@@ -86,8 +84,8 @@ function profileDraft(user) {
   };
 }
 
-export default function ProfilePage({ onNavigate }) {
-  const { currentUser, token, logout, updateUserProfile } = useAuth();
+export default function ProfilePage() {
+  const { currentUser, token, updateUserProfile } = useAuth();
   const [draft, setDraft] = useState(() => profileDraft(currentUser));
   const [editing, setEditing] = useState(false);
   const [financialData, setFinancialData] = useState(null);
@@ -263,15 +261,6 @@ export default function ProfilePage({ onNavigate }) {
 
   return (
     <main className="profile-page">
-      <header className="profile-page-header">
-        <button className="profile-nav-button" onClick={() => onNavigate?.("/")}>
-          <ArrowLeft size={16} /> Back to app
-        </button>
-        <button className="profile-nav-button" onClick={logout}>
-          <LogOut size={16} /> Sign out
-        </button>
-      </header>
-
       <div className="profile-content">
         <section className="profile-hero">
           <div className="profile-hero-glow" />

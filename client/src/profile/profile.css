@@ -6,14 +6,6 @@
   font-family: Inter, Arial, sans-serif;
 }
 
-.profile-page-header {
-  max-width: 1100px;
-  margin: 0 auto 18px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.profile-nav-button,
 .profile-edit-hero,
 .profile-edit,
 .profile-action-group button,
@@ -28,11 +20,6 @@
   color: inherit;
   font-weight: 600;
   cursor: pointer;
-}
-
-.profile-nav-button {
-  border-color: var(--bb-border-sub, #d8e5e8);
-  background: var(--bb-card-bg, #fff);
 }
 
 .profile-content {
@@ -534,15 +521,6 @@
 }
 
 @media (max-width: 420px) {
-  .profile-page-header {
-    gap: 8px;
-  }
-
-  .profile-nav-button {
-    padding: 8px;
-    font-size: 12px;
-  }
-
   .profile-card {
     padding: 17px;
   }

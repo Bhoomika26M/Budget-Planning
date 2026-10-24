@@ -21,5 +21,8 @@ class User(Base):
         String(20), nullable=False, default='student', server_default='student'
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        default=func.now(),
+        server_default=func.now(),
     )
