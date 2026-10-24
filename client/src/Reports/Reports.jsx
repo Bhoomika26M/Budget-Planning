@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import {
   BarChart,
@@ -10,7 +9,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { useAuth } from "../context/useAuth";
 import "./Reports.css";
 
 const API_URL = "http://localhost:8000";
@@ -43,89 +41,12 @@ const reportTypes = [
   },
 ];
 
-function BellIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="21"
-      height="21"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
-    </svg>
-  );
-}
-
-function Reports({ onAddTransaction, onNavigate }) {
-  const { currentUser } = useAuth();
-
+function Reports({ onAddTransaction }) {
   const [activeReport, setActiveReport] = useState("Monthly Summary");
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Read the current theme without changing it during rendering.
-  const [theme, setTheme] = useState(() => {
-    if (typeof document === "undefined") return "light";
-
-    return (
-      document.documentElement.dataset.theme ||
-      localStorage.getItem("budgetbuddy-theme") ||
-      "light"
-    );
-  });
-
-  // Keep the theme icon synchronized with changes made by other components.
-  useEffect(() => {
-    const syncTheme = () => {
-      const currentTheme =
-        document.documentElement.dataset.theme ||
-        localStorage.getItem("budgetbuddy-theme") ||
-        "light";
-
-      setTheme(currentTheme);
-    };
-
-    window.addEventListener("budgetbuddy-theme-change", syncTheme);
-
-    return () => {
-      window.removeEventListener("budgetbuddy-theme-change", syncTheme);
-    };
-  }, []);
-
-  // Only the theme button should change the theme.
-  const toggleTheme = (event) => {
-    event.stopPropagation();
-
-    const nextTheme = theme === "dark" ? "light" : "dark";
-
-    document.documentElement.dataset.theme = nextTheme;
-    document.documentElement.style.colorScheme = nextTheme;
-    localStorage.setItem("budgetbuddy-theme", nextTheme);
-
-    setTheme(nextTheme);
-
-    window.dispatchEvent(new Event("budgetbuddy-theme-change"));
-  };
-
-  // Navigate without changing the theme.
-  const navigateTo = (path) => {
-    if (typeof onNavigate === "function") {
-      onNavigate(path);
-      return;
-    }
-
-    window.history.pushState({}, "", path);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  };
 
   const fetchReportData = useCallback(async () => {
     try {
@@ -206,15 +127,6 @@ function Reports({ onAddTransaction, onNavigate }) {
     }
   };
 
-  const userName =
-    currentUser?.name ||
-    currentUser?.username ||
-    currentUser?.full_name ||
-    currentUser?.email?.split("@")[0] ||
-    "Account";
-
-  const userInitial = userName.charAt(0).toUpperCase();
-
   const monthlyData = Array.isArray(reportData?.monthly_data)
     ? reportData.monthly_data
     : [];
@@ -235,78 +147,18 @@ function Reports({ onAddTransaction, onNavigate }) {
 
   return (
     <div className="reports-page">
-      <header className="reports-header">
-        <div className="reports-page-heading">
-          <h1>Reports</h1>
-          <p>Generate and export reports</p>
+      <div className="reports-toolbar">
+        <div className="reports-search">
+          <span aria-hidden="true">⌕</span>
+          <input
+            type="search"
+            placeholder="Search months..."
+            aria-label="Search report months"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
         </div>
-
-        <div className="reports-header-actions">
-          <div className="reports-search">
-            <span aria-hidden="true">⌕</span>
-            <input
-              type="search"
-              placeholder="Search months..."
-              aria-label="Search report months"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-          </div>
-
-          <button
-            className="add-transaction-btn"
-            type="button"
-            onClick={handleAddTransaction}
-          >
-            <span aria-hidden="true">+</span>
-            Add Transaction
-          </button>
-
-          {/* Only this button toggles the theme. */}
-          <button
-            className="header-icon-btn"
-            type="button"
-            aria-label={
-              theme === "dark"
-                ? "Switch to light mode"
-                : "Switch to dark mode"
-            }
-            title="Toggle dark mode"
-            onClick={toggleTheme}
-          >
-            {theme === "dark" ? "☀" : "☾"}
-          </button>
-
-          {/* This button only navigates to Notifications. */}
-          <button
-            className="header-icon-btn notification-button"
-            type="button"
-            aria-label="Notifications"
-            title="Notifications"
-            onClick={(event) => {
-              event.stopPropagation();
-              navigateTo("/notifications");
-            }}
-          >
-            <BellIcon />
-          </button>
-
-          <button
-            type="button"
-            className="profile-button"
-            onClick={(event) => {
-              event.stopPropagation();
-              navigateTo("/profile");
-            }}
-            aria-label={`Open profile for ${userName}`}
-            title="Open profile"
-          >
-            <span className="profile-avatar">{userInitial}</span>
-            <span className="profile-name">{userName}</span>
-            <span aria-hidden="true">⌄</span>
-          </button>
-        </div>
-      </header>
+      </div>
 
       {error && (
         <div className="backend-message" role="alert">

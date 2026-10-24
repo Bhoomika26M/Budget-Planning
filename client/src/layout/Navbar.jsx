@@ -1,8 +1,27 @@
-import { useState } from "react";
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, ChevronDown, LogOut, Moon, Plus, Sun, UserRound } from "lucide-react";
 
-function Navbar({ title, subtitle, actions, currentUser, onNavigate, onLogout }) {
+function getCurrentTheme() {
+  if (typeof document === "undefined") return "light";
+  return (
+    document.documentElement.dataset.theme ||
+    localStorage.getItem("budgetbuddy-theme") ||
+    "light"
+  );
+}
+
+function Navbar({
+  title,
+  subtitle,
+  actions,
+  currentUser,
+  onNavigate,
+  onLogout,
+  onAddTransaction,
+}) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(getCurrentTheme);
+
   const initials = currentUser?.name
     ?.trim()
     .split(/\s+/)
@@ -10,6 +29,22 @@ function Navbar({ title, subtitle, actions, currentUser, onNavigate, onLogout })
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  // Keep the theme icon in sync if the theme is changed elsewhere (e.g. Settings).
+  useEffect(() => {
+    const syncTheme = () => setTheme(getCurrentTheme());
+    window.addEventListener("budgetbuddy-theme-change", syncTheme);
+    return () => window.removeEventListener("budgetbuddy-theme-change", syncTheme);
+  }, []);
+
+  function toggleTheme() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    document.documentElement.style.colorScheme = nextTheme;
+    localStorage.setItem("budgetbuddy-theme", nextTheme);
+    setTheme(nextTheme);
+    window.dispatchEvent(new Event("budgetbuddy-theme-change"));
+  }
 
   return (
     <header className="app-navbar">
@@ -19,6 +54,38 @@ function Navbar({ title, subtitle, actions, currentUser, onNavigate, onLogout })
       </div>
       <div className="app-navbar-actions">
         {actions}
+
+        {onAddTransaction ? (
+          <button
+            className="app-action-button app-add-transaction"
+            type="button"
+            onClick={onAddTransaction}
+          >
+            <Plus size={15} aria-hidden="true" />
+            Add Transaction
+          </button>
+        ) : null}
+
+        <button
+          className="app-icon-button"
+          type="button"
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title="Toggle dark mode"
+          onClick={toggleTheme}
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        <button
+          className="app-icon-button"
+          type="button"
+          aria-label="Notifications"
+          title="Notifications"
+          onClick={() => onNavigate("/notifications")}
+        >
+          <Bell size={18} />
+        </button>
+
         <div className="app-account-menu">
           <button
             className="app-account-trigger"
