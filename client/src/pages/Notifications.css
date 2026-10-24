@@ -1,0 +1,466 @@
+.notifications-page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 28px 30px 40px;
+  color: #172b3a;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.notifications-page *,
+.notifications-page *::before,
+.notifications-page *::after {
+  box-sizing: border-box;
+}
+
+.notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.notifications-header h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: #17344a;
+}
+
+.notifications-header p {
+  margin: 5px 0 0;
+  color: #778899;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.notification-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: #2387b8;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.notification-text-button:hover {
+  background: #eaf5fb;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.notification-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  width: 100%;
+  padding: 17px 18px;
+  border: 1px solid #e7edf2;
+  border-left: 4px solid transparent;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(26, 58, 79, 0.025);
+  cursor: pointer;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.notification-card:hover {
+  box-shadow: 0 5px 18px rgba(26, 58, 79, 0.07);
+  transform: translateY(-1px);
+}
+
+.notification-card.notification-unread {
+  background: #fbfdff;
+}
+
+.notification-icon {
+  display: flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.notification-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-card-heading h3 {
+  margin: 0;
+  color: #233b4c;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.notification-content > p {
+  margin: 5px 0 0;
+  color: #738393;
+  font-size: 12px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  color: #94a2af;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.notification-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 31px;
+  height: 31px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #91a0ad;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.notification-actions button:hover {
+  background: #edf5f9;
+  color: #2387b8;
+}
+
+.notification-actions button:last-child:hover {
+  background: #fff0f0;
+  color: #dc4444;
+}
+
+.notifications-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 35px 22px;
+  border: 1px dashed #dce6ed;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #22a06b;
+  text-align: center;
+}
+
+.notifications-empty h3 {
+  margin: 13px 0 0;
+  color: #233b4c;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.notifications-empty p {
+  max-width: 420px;
+  margin: 7px 0 0;
+  color: #81909e;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.notifications-empty button,
+.notifications-error button {
+  margin-top: 15px;
+  padding: 9px 13px;
+  border: 1px solid #cfe6f2;
+  border-radius: 8px;
+  background: #f0f9fd;
+  color: #187eac;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notifications-empty button:hover,
+.notifications-error button:hover {
+  background: #e1f3fb;
+}
+
+.notifications-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 12px 14px;
+  border: 1px solid #f2d0c9;
+  border-radius: 10px;
+  background: #fff8f6;
+  color: #b54732;
+  font-size: 12px;
+}
+
+.notifications-error span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.notifications-error button {
+  margin-top: 0;
+  border-color: #f2d0c9;
+  background: #fff;
+  color: #b54732;
+}
+
+.notifications-spinner {
+  width: 27px;
+  height: 27px;
+  border: 3px solid #dcecf4;
+  border-top-color: #2e93c7;
+  border-radius: 50%;
+  animation: notifications-spin 0.8s linear infinite;
+}
+
+@keyframes notifications-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 1400px) {
+  .notifications-page {
+    padding-right: 36px;
+    padding-left: 36px;
+  }
+}
+
+@media (max-width: 768px) {
+  .notifications-page {
+    padding: 22px 18px 30px;
+  }
+
+  .notifications-header h1 {
+    font-size: 23px;
+  }
+
+  .notification-card {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .notification-icon {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .notification-actions {
+    gap: 1px;
+  }
+
+  .notification-actions button {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notifications-page {
+    padding: 18px 12px 25px;
+  }
+
+  .notifications-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .notifications-header h1 {
+    font-size: 21px;
+  }
+
+  .notification-text-button {
+    gap: 5px;
+    padding: 7px;
+    font-size: 11px;
+  }
+
+  .notification-card {
+    gap: 10px;
+    padding: 12px 10px;
+  }
+
+  .notification-icon {
+    flex-basis: 33px;
+    width: 33px;
+    height: 33px;
+    border-radius: 9px;
+  }
+
+  .notification-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .notification-card-heading h3 {
+    font-size: 12px;
+  }
+
+  .notification-content > p {
+    font-size: 11px;
+  }
+
+  .notification-actions {
+    flex-direction: column;
+  }
+}
+
+/* =====================================================
+   DARK THEME — Notifications page
+   Append to the bottom of the existing CSS
+   ===================================================== */
+
+.dark-theme .notifications-page {
+  color: #EAF4FB;
+}
+
+/* Page headings */
+.dark-theme .notifications-header h1,
+.dark-theme .notification-card-heading h3,
+.dark-theme .notifications-empty h3 {
+  color: #EAF4FB;
+}
+
+.dark-theme .notifications-header p {
+  color: #B9D2E7;
+}
+
+/* Notification cards */
+.dark-theme .notification-card {
+  background: #143452;
+  border-color: rgba(45, 147, 199, 0.25);
+  border-left-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.dark-theme .notification-card:hover {
+  background: #16405F;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .notification-card.notification-unread {
+  background: #16405F;
+  border-left-color: #2E93C7;
+}
+
+.dark-theme .notification-content > p {
+  color: #C1D6E7;
+}
+
+.dark-theme .notification-meta {
+  color: #9DB9CF;
+}
+
+/* Header text button */
+.dark-theme .notification-text-button {
+  color: #63B8E8;
+}
+
+.dark-theme .notification-text-button:hover {
+  background: #164A72;
+}
+
+/* Action buttons */
+.dark-theme .notification-actions button {
+  color: #B9D2E7;
+}
+
+.dark-theme .notification-actions button:hover {
+  color: #EAF4FB;
+  background: #28516B;
+}
+
+.dark-theme .notification-actions button:last-child:hover {
+  color: #FCA5A5;
+  background: #542C38;
+}
+
+/* Empty state */
+.dark-theme .notifications-empty {
+  color: #6EE7B7;
+  background: #143452;
+  border-color: #28516B;
+}
+
+.dark-theme .notifications-empty p {
+  color: #B9D2E7;
+}
+
+.dark-theme .notifications-empty button,
+.dark-theme .notifications-error button {
+  color: #7DD3FC;
+  background: #164A72;
+  border-color: #28516B;
+}
+
+.dark-theme .notifications-empty button:hover,
+.dark-theme .notifications-error button:hover {
+  background: #1B5B85;
+}
+
+/* Error message */
+.dark-theme .notifications-error {
+  color: #FECACA;
+  background: #451F2A;
+  border-color: #7F3545;
+}
+
+/* Loading spinner */
+.dark-theme .notifications-spinner {
+  border-color: #28516B;
+  border-top-color: #63B8E8;
+}
+
+/* Make SVG icons inherit their surrounding text color */
+.dark-theme .notifications-page svg {
+  color: inherit;
+}
