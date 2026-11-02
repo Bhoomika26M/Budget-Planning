@@ -1,5 +1,77 @@
 
-/* Shared application layout */
+
+/* =========================================
+   DARK MODE - MINIMAL OVERRIDES
+   Preserve existing layout and formatting
+   ========================================= */
+
+.app-layout.dark-theme {
+  background: #0C2A45;
+  color: #EAF4FB;
+}
+
+.dark-theme .app-main,
+.dark-theme .app-page-content {
+  background: #0C2A45;
+  color: #EAF4FB;
+}
+
+.dark-theme .app-navbar {
+  background: #063547;
+  border-bottom-color: rgba(45, 147, 199, 0.25);
+}
+
+.dark-theme .navbar-heading h1 {
+  color: #EAF4FB;
+}
+
+.dark-theme .navbar-heading p,
+.dark-theme .navbar-profile-info p {
+  color: #8DBEE3;
+}
+
+.dark-theme .navbar-search,
+.dark-theme .navbar-date,
+.dark-theme .navbar-icon-button {
+  background: #143452;
+  color: #EAF4FB;
+  border-color: #28516B;
+}
+
+.dark-theme .navbar-search input {
+  background: transparent;
+  color: #EAF4FB;
+}
+
+.dark-theme .navbar-search input::placeholder {
+  color: #8DBEE3;
+}
+
+.dark-theme .navbar-profile {
+  color: #EAF4FB;
+}
+
+/* Common page text */
+.dark-theme .app-page-content h1,
+.dark-theme .app-page-content h2,
+.dark-theme .app-page-content h3,
+.dark-theme .app-page-content h4 {
+  color: #EAF4FB;
+}
+
+/* Common form fields */
+.dark-theme .app-page-content input,
+.dark-theme .app-page-content select,
+.dark-theme .app-page-content textarea {
+  background-color: #143452;
+  color: #EAF4FB;
+  border-color: #28516B;
+}
+
+.dark-theme .app-page-content input::placeholder,
+.dark-theme .app-page-content textarea::placeholder {
+  color: #8DBEE3;
+}
 
 .app-sidebar,
 .app-navbar {

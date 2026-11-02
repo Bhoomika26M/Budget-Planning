@@ -1,0 +1,436 @@
+
+.settings-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px;
+  color: var(--text-primary, #202b3c);
+}
+
+.settings-header {
+  margin-bottom: 26px;
+}
+
+.settings-eyebrow {
+  color: #6d70df;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.settings-header h1 {
+  margin: 8px 0;
+  font-size: 30px;
+  font-weight: 750;
+}
+
+.settings-header p {
+  margin: 0;
+  color: #7c8798;
+  font-size: 14px;
+}
+
+.settings-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid #bcebd4;
+  border-radius: 11px;
+  background: #eafaf2;
+  color: #168258;
+  font-size: 13px;
+}
+
+.settings-card {
+  padding: 25px;
+  margin-bottom: 20px;
+  border: 1px solid #e8eaf2;
+  border-radius: 16px;
+  background: var(--card-bg, #ffffff);
+}
+
+.settings-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 24px;
+}
+
+.settings-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.settings-heading-icon.profile {
+  background: #efedff;
+  color: #7770dd;
+}
+
+.settings-heading-icon.finance {
+  background: #e2f5ed;
+  color: #179568;
+}
+
+.settings-heading-icon.notifications {
+  background: #fff2df;
+  color: #d99117;
+}
+
+.settings-heading-icon.appearance {
+  background: #e5f2ff;
+  color: #3385d6;
+}
+
+.settings-card-heading h2 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.settings-card-heading p {
+  margin: 0;
+  color: #8790a0;
+  font-size: 12px;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.settings-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #515c6e;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.settings-form-grid input,
+.settings-form-grid select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1px solid #e1e5ed;
+  border-radius: 9px;
+  outline: none;
+  background: var(--input-bg, #ffffff);
+  color: var(--text-primary, #30394b);
+  font: inherit;
+  font-size: 13px;
+}
+
+.settings-form-grid input:focus,
+.settings-form-grid select:focus {
+  border-color: #7778e8;
+  box-shadow: 0 0 0 3px #7778e81a;
+}
+
+.settings-note {
+  margin: 17px 0 0;
+  color: #929aaa;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 0;
+  border-bottom: 1px solid #eff0f5;
+  cursor: pointer;
+}
+
+.settings-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.settings-toggle-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-toggle-row strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.settings-toggle-row small {
+  color: #8992a1;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.settings-toggle-row input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: #696ce0;
+  cursor: pointer;
+}
+
+.settings-theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.settings-theme-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  border: 1px solid #e3e6ef;
+  border-radius: 11px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.settings-theme-choice.selected {
+  border-color: #7778e8;
+  background: #f7f7ff;
+}
+
+.settings-theme-choice input {
+  accent-color: #696ce0;
+}
+
+.settings-theme-preview {
+  width: 27px;
+  height: 27px;
+  border: 1px solid #dfe3ec;
+  border-radius: 7px;
+}
+
+.light-preview {
+  background: linear-gradient(135deg, #ffffff 50%, #e9eaff 50%);
+}
+
+.dark-preview {
+  background: linear-gradient(135deg, #20283b 50%, #5555a8 50%);
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0 25px;
+}
+
+.settings-reset-button,
+.settings-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 17px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.settings-reset-button {
+  border: 1px solid #e2e5ed;
+  background: white;
+  color: #687386;
+}
+
+.settings-save-button {
+  border: 1px solid #696ce0;
+  background: #696ce0;
+  color: white;
+}
+
+.settings-reset-button:hover {
+  background: #f7f8fb;
+}
+
+.settings-save-button:hover {
+  background: #595bc8;
+}
+
+@media (max-width: 650px) {
+  .settings-page {
+    padding: 17px;
+  }
+
+  .settings-header h1 {
+    font-size: 25px;
+  }
+
+  .settings-card {
+    padding: 17px;
+  }
+
+  .settings-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-footer {
+    flex-direction: column-reverse;
+  }
+
+  .settings-footer button {
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   DARK THEME — Settings page
+   Append to the bottom of the existing Settings CSS
+   ===================================================== */
+
+.dark-theme .settings-page {
+  color: #EAF4FB;
+}
+
+/* Page heading */
+.dark-theme .settings-header h1,
+.dark-theme .settings-card-heading h2,
+.dark-theme .settings-toggle-row strong {
+  color: #EAF4FB;
+}
+
+.dark-theme .settings-eyebrow {
+  color: #63B8E8;
+}
+
+.dark-theme .settings-header p,
+.dark-theme .settings-card-heading p,
+.dark-theme .settings-toggle-row small,
+.dark-theme .settings-note {
+  color: #B9D2E7;
+}
+
+/* Settings cards */
+.dark-theme .settings-card {
+  background: #143452;
+  border-color: rgba(45, 147, 199, 0.25);
+}
+
+/* Labels and form fields */
+.dark-theme .settings-form-grid label {
+  color: #D6E7F4;
+}
+
+.dark-theme .settings-form-grid input,
+.dark-theme .settings-form-grid select {
+  color: #EAF4FB;
+  background: #0C2A45;
+  border-color: #28516B;
+  color-scheme: dark;
+}
+
+.dark-theme .settings-form-grid input::placeholder {
+  color: #8DBEE3;
+}
+
+.dark-theme .settings-form-grid input:focus,
+.dark-theme .settings-form-grid select:focus {
+  border-color: #63B8E8;
+  box-shadow: 0 0 0 3px rgba(99, 184, 232, 0.15);
+}
+
+/* Section icon backgrounds */
+.dark-theme .settings-heading-icon.profile {
+  background: #34396B;
+  color: #B6B7FF;
+}
+
+.dark-theme .settings-heading-icon.finance {
+  background: #145747;
+  color: #6EE7B7;
+}
+
+.dark-theme .settings-heading-icon.notifications {
+  background: #594522;
+  color: #FCD34D;
+}
+
+.dark-theme .settings-heading-icon.appearance {
+  background: #164A72;
+  color: #7DD3FC;
+}
+
+/* Success message */
+.dark-theme .settings-success {
+  color: #6EE7B7;
+  background: #123F35;
+  border-color: #236B55;
+}
+
+/* Toggle rows */
+.dark-theme .settings-toggle-row {
+  border-bottom-color: rgba(185, 210, 231, 0.18);
+}
+
+.dark-theme .settings-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.dark-theme .settings-toggle-row input,
+.dark-theme .settings-theme-choice input {
+  accent-color: #2E93C7;
+}
+
+/* Theme selection options */
+.dark-theme .settings-theme-choice {
+  color: #D6E7F4;
+  background: #0F304B;
+  border-color: #28516B;
+}
+
+.dark-theme .settings-theme-choice.selected {
+  color: #EAF4FB;
+  background: #164A72;
+  border-color: #63B8E8;
+}
+
+.dark-theme .settings-theme-preview {
+  border-color: #52748C;
+}
+
+.dark-theme .light-preview {
+  background: linear-gradient(135deg, #FFFFFF 50%, #E9EAFF 50%);
+}
+
+.dark-theme .dark-preview {
+  background: linear-gradient(135deg, #0C2A45 50%, #2E93C7 50%);
+}
+
+/* Footer buttons */
+.dark-theme .settings-reset-button {
+  color: #EAF4FB;
+  background: #164A72;
+  border-color: #28516B;
+}
+
+.dark-theme .settings-reset-button:hover {
+  background: #1B5B85;
+}
+
+.dark-theme .settings-save-button {
+  color: #FFFFFF;
+  background: #2E93C7;
+  border-color: #2E93C7;
+}
+
+.dark-theme .settings-save-button:hover {
+  background: #0D6D91;
+}
