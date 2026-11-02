@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./context/useAuth";
 import AdminDashboard from "./admin/AdminDashboard";
 import AuthPage from "./authentication/AuthPage";
+import NotificationsPage from "./features/notifications/NotificationsPage";
 import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
 import FeatureStatusPage from "./pages/FeatureStatusPage";
@@ -10,7 +11,6 @@ import SavingsGoals from "./pages/SavingsGoals";
 import BudgetPlanning from "./pages/BudgetPlanning";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
-import BudgetPlanning from "./features/budget/BudgetPlanning";
 import Dashboard from "./features/dashboard/Dashboard";
 import ExpenseTracker from "./features/expenses/ExpenseTracker";
 import RecentTransactions from "./features/dashboard/RecentTransactions";
@@ -47,12 +47,7 @@ const routes = {
   "/notifications": {
     id: "notifications",
     title: "Notifications",
-    Page: FeatureStatusPage,
-    pageProps: {
-      title: "Notifications",
-      summary: "View account alerts and reminders in one place.",
-      missing: "A notifications inbox and delivery API are not implemented. Notification preference switches in Settings only save preferences; they do not send or display notifications.",
-    },
+    Page: NotificationsPage,
   },
   "/admin": { id: "admin", title: "User Management", Page: AdminDashboard },
   "/settings": {
