@@ -1,0 +1,330 @@
+
+/* =====================================================
+   BUDGETBUDDY — GLOBAL FIGMA THEME OVERRIDES
+   Keeps existing layout, spacing, dimensions and fonts.
+   ===================================================== */
+
+/* ---------- Figma design tokens: Light mode ---------- */
+
+.app-layout {
+  --background: #F6F9FC;
+  --foreground: #0C2A45;
+
+  --card: #FFFFFF;
+  --card-foreground: #143452;
+
+  --primary: #2E93C7;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #EAF4FB;
+  --secondary-foreground: #143452;
+
+  --muted: #E4EFF7;
+  --muted-foreground: #5F7D95;
+
+  --accent: #063547;
+  --accent-foreground: #FFFFFF;
+
+  --border: rgba(45, 147, 199, 0.15);
+  --input: #FFFFFF;
+  --ring: #2E93C7;
+
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+/* ---------- Figma design tokens: Dark mode ---------- */
+
+.app-layout.dark-theme {
+  --background: #0C2A45;
+  --foreground: #EAF4FB;
+
+  --card: #143452;
+  --card-foreground: #EAF4FB;
+
+  --primary: #2E93C7;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #164A72;
+  --secondary-foreground: #EAF4FB;
+
+  --muted: #164A72;
+  --muted-foreground: #B9D2E7;
+
+  --accent: #2E93C7;
+  --accent-foreground: #FFFFFF;
+
+  --border: rgba(45, 147, 199, 0.2);
+  --input: #143452;
+  --ring: #2E93C7;
+
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+/* ---------- Application surfaces ---------- */
+
+.app-layout,
+.app-main,
+.app-page-content {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.dark-theme .app-navbar {
+  background-color: #063547;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.dark-theme .navbar-heading h1,
+.dark-theme .navbar-profile {
+  color: var(--foreground);
+}
+
+.dark-theme .navbar-heading p,
+.dark-theme .navbar-profile-info p {
+  color: var(--muted-foreground);
+}
+
+/* ---------- Common card surfaces ---------- */
+/* Only changes colors; never changes card dimensions. */
+
+.dark-theme .card,
+.dark-theme .stat-card,
+.dark-theme .summary-card,
+.dark-theme .dashboard-card,
+.dark-theme .budget-card,
+.dark-theme .income-card,
+.dark-theme .savings-card,
+.dark-theme .settings-card,
+.dark-theme .notification-card,
+.dark-theme .chart-card,
+.dark-theme .analytics-card,
+.dark-theme .stat-box,
+.dark-theme .summary-box,
+.dark-theme .content-card,
+.dark-theme .form-card {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--border);
+}
+
+/* ---------- Text inside common cards ---------- */
+
+.dark-theme .card h1,
+.dark-theme .card h2,
+.dark-theme .card h3,
+.dark-theme .card h4,
+.dark-theme .stat-card h1,
+.dark-theme .stat-card h2,
+.dark-theme .stat-card h3,
+.dark-theme .stat-card h4,
+.dark-theme .summary-card h1,
+.dark-theme .summary-card h2,
+.dark-theme .summary-card h3,
+.dark-theme .summary-card h4,
+.dark-theme .dashboard-card h1,
+.dark-theme .dashboard-card h2,
+.dark-theme .dashboard-card h3,
+.dark-theme .dashboard-card h4,
+.dark-theme .budget-card h1,
+.dark-theme .budget-card h2,
+.dark-theme .budget-card h3,
+.dark-theme .budget-card h4,
+.dark-theme .income-card h1,
+.dark-theme .income-card h2,
+.dark-theme .income-card h3,
+.dark-theme .income-card h4,
+.dark-theme .savings-card h1,
+.dark-theme .savings-card h2,
+.dark-theme .savings-card h3,
+.dark-theme .savings-card h4,
+.dark-theme .settings-card h1,
+.dark-theme .settings-card h2,
+.dark-theme .settings-card h3,
+.dark-theme .settings-card h4,
+.dark-theme .notification-card h1,
+.dark-theme .notification-card h2,
+.dark-theme .notification-card h3,
+.dark-theme .notification-card h4 {
+  color: var(--card-foreground);
+}
+
+/* ---------- Secondary text ---------- */
+
+.dark-theme .text-muted,
+.dark-theme .muted,
+.dark-theme .subtitle,
+.dark-theme .description,
+.dark-theme .helper-text,
+.dark-theme .secondary-text {
+  color: var(--muted-foreground);
+}
+
+/* ---------- Inputs and form controls ---------- */
+
+.dark-theme .app-page-content input,
+.dark-theme .app-page-content select,
+.dark-theme .app-page-content textarea,
+.dark-theme .app-page-content .form-control {
+  color: var(--foreground);
+  background-color: var(--input);
+  border-color: var(--border);
+}
+
+.dark-theme .app-page-content input::placeholder,
+.dark-theme .app-page-content textarea::placeholder,
+.dark-theme .app-page-content input::-webkit-input-placeholder,
+.dark-theme .app-page-content textarea::-webkit-input-placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+.dark-theme .app-page-content select option {
+  color: var(--foreground);
+  background-color: var(--card);
+}
+
+.dark-theme .app-page-content input:focus,
+.dark-theme .app-page-content select:focus,
+.dark-theme .app-page-content textarea:focus {
+  border-color: var(--ring);
+  outline-color: var(--ring);
+}
+
+/* ---------- Tables ---------- */
+
+.dark-theme .app-page-content table {
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.dark-theme .app-page-content thead,
+.dark-theme .app-page-content th {
+  color: var(--foreground);
+  background-color: #063547;
+}
+
+.dark-theme .app-page-content td {
+  color: var(--card-foreground);
+  border-color: var(--border);
+}
+
+.dark-theme .app-page-content tbody tr {
+  background-color: var(--card);
+}
+
+.dark-theme .app-page-content tbody tr:nth-child(even) {
+  background-color: #164A72;
+}
+
+/* ---------- Buttons ---------- */
+/* Preserve existing button sizing and layout. */
+
+.dark-theme .app-page-content button:disabled {
+  opacity: 0.55;
+}
+
+.dark-theme .app-page-content .btn-secondary,
+.dark-theme .app-page-content .secondary-button {
+  color: var(--foreground);
+  background-color: var(--secondary);
+  border-color: var(--border);
+}
+
+/* ---------- Links ---------- */
+
+.dark-theme .app-page-content a {
+  color: #8DBEE3;
+}
+
+.dark-theme .app-page-content a:hover {
+  color: #FFFFFF;
+}
+
+/* ---------- Dividers ---------- */
+
+.dark-theme .app-page-content hr,
+.dark-theme .app-page-content .divider {
+  border-color: var(--border);
+}
+
+/* ---------- Existing sidebar remains unchanged ---------- */
+/* The original sidebar styling is intentionally preserved. */
+
+/* ---------- Responsive behavior remains unchanged ---------- */
+
+/* =====================================================
+   DARK MODE FIX: INNER BOXES AND CHART BACKGROUNDS
+   Append to the bottom of theme-overrides.css
+   ===================================================== */
+
+/* Common nested panels and inner boxes */
+.app-layout.dark-theme .app-page-content .card,
+.app-layout.dark-theme .app-page-content .panel,
+.app-layout.dark-theme .app-page-content .chart-container,
+.app-layout.dark-theme .app-page-content .chart-wrapper,
+.app-layout.dark-theme .app-page-content .chart-card,
+.app-layout.dark-theme .app-page-content .analytics-card,
+.app-layout.dark-theme .app-page-content .inner-card,
+.app-layout.dark-theme .app-page-content .inner-box,
+.app-layout.dark-theme .app-page-content .content-panel,
+.app-layout.dark-theme .app-page-content .graph-container {
+  background-color: #143452;
+  color: #EAF4FB;
+  border-color: rgba(45, 147, 199, 0.2);
+}
+
+/* Common chart library containers */
+.app-layout.dark-theme .recharts-wrapper,
+.app-layout.dark-theme .recharts-responsive-container,
+.app-layout.dark-theme .recharts-surface,
+.app-layout.dark-theme .recharts-cartesian-grid,
+.app-layout.dark-theme .recharts-legend-wrapper {
+  color: #EAF4FB;
+}
+
+/* Recharts labels, axis ticks and legend text */
+.app-layout.dark-theme .recharts-text,
+.app-layout.dark-theme .recharts-cartesian-axis-tick-value,
+.app-layout.dark-theme .recharts-legend-item-text {
+  fill: #B9D2E7;
+}
+
+/* Chart tooltips */
+.app-layout.dark-theme .recharts-default-tooltip {
+  background-color: #063547 !important;
+  border: 1px solid rgba(45, 147, 199, 0.3) !important;
+  color: #EAF4FB !important;
+}
+
+.app-layout.dark-theme .recharts-tooltip-label,
+.app-layout.dark-theme .recharts-tooltip-item {
+  color: #EAF4FB !important;
+}
+
+/* Chart.js canvas charts */
+.app-layout.dark-theme canvas {
+  color: #EAF4FB;
+}
+
+/* Nested white utility backgrounds */
+.app-layout.dark-theme .app-page-content .bg-white,
+.app-layout.dark-theme .app-page-content [class~="bg-white"] {
+  background-color: #143452 !important;
+  color: #EAF4FB;
+}
+
+/* Common chart and panel headings */
+.app-layout.dark-theme .chart-container h1,
+.app-layout.dark-theme .chart-container h2,
+.app-layout.dark-theme .chart-container h3,
+.app-layout.dark-theme .chart-card h1,
+.app-layout.dark-theme .chart-card h2,
+.app-layout.dark-theme .chart-card h3,
+.app-layout.dark-theme .analytics-card h1,
+.app-layout.dark-theme .analytics-card h2,
+.app-layout.dark-theme .analytics-card h3 {
+  color: #EAF4FB;
+}
