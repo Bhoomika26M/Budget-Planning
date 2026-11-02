@@ -39,11 +39,24 @@ function Settings({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [status, setStatus] = useState("");
 
-  useEffect(() => {
+    useEffect(() => {
     const theme = preferences.darkMode ? "dark" : "light";
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("budgetbuddy-theme", theme);
+    window.dispatchEvent(new Event("budgetbuddy-theme-change"));
   }, [preferences.darkMode]);
+
+  useEffect(() => {
+    const syncFromNavbar = () => {
+      const isDark = document.documentElement.dataset.theme === "dark";
+      setPreferences((previous) =>
+        previous.darkMode === isDark ? previous : { ...previous, darkMode: isDark }
+      );
+    };
+
+    window.addEventListener("budgetbuddy-theme-change", syncFromNavbar);
+    return () => window.removeEventListener("budgetbuddy-theme-change", syncFromNavbar);
+  }, []);
   
 useEffect(() => {
   async function loadSettings() {
