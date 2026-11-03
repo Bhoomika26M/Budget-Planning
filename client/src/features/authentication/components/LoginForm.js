@@ -27,7 +27,7 @@ export const DEMO_ROLES = [
     role: "student",
     label: "Student",
     email: "john.doe@budgetbuddy.in",
-    pwd: "budget2025",
+    
     icon: GraduationCap,
     desc: "Basic access",
   },
@@ -35,7 +35,7 @@ export const DEMO_ROLES = [
     role: "premium",
     label: "Premium User",
     email: "premium@budgetbuddy.in",
-    pwd: "premium123",
+    
     icon: Crown,
     desc: "Full feature access",
   },
@@ -43,7 +43,6 @@ export const DEMO_ROLES = [
     role: "admin",
     label: "Admin",
     email: "admin@budgetbuddy.in",
-    pwd: "admin2026",
     icon: ShieldCheck,
     desc: "User management",
   },
@@ -87,7 +86,7 @@ export default function LoginScreen() {
     const demo = DEMO_ROLES.find((d) => d.role === r);
     setSelectedRole(r);
     setEmail(demo.email);
-    setPwd(demo.pwd);
+    setPwd("");
     setError("");
   }
   function attempt(emailOverride, pwdOverride) {
@@ -229,7 +228,7 @@ export default function LoginScreen() {
                     color: ROLE_META[selectedRole].color,
                   }}
                 >
-                  Demo <strong>{ROLE_META[selectedRole].label}</strong> account filled in — press Sign in
+                  Demo <strong>{ROLE_META[selectedRole].label}</strong> account filled in — enter password & press Sign in
                 </p>
               </div>
             ) : (
