@@ -7,6 +7,7 @@ import NotificationsPage from "./features/notifications/NotificationsPage";
 import Income from "./income/Income";
 import ProfilePage from "./profile/ProfilePage";
 import FeatureStatusPage from "./pages/FeatureStatusPage";
+import BudgetPlanning from "./pages/BudgetPlanning";
 import SavingsGoals from "./pages/SavingsGoals";
 import "./App.css";
 import AddTransactionModal from "./features/dashboard/AddTransactionModal";
