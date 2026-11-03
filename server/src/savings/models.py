@@ -1,5 +1,6 @@
 
 from datetime import date as DateType
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -10,8 +11,9 @@ class SavingsGoalCreate(BaseModel):
     target: float = Field(gt=0)
     saved: float = Field(default=0, ge=0)
     deadline: Optional[DateType] = None
-    color: Optional[str] = Field(default="#4169e1", max_length=30)
+    color: Optional[str] = Field(default="#2E93C7", max_length=30)
     note: Optional[str] = Field(default=None, max_length=500)
+    emoji: Optional[str] = Field(default="🎯", max_length=16)
 
 
 class SavingsGoalUpdate(BaseModel):
@@ -21,6 +23,8 @@ class SavingsGoalUpdate(BaseModel):
     deadline: Optional[DateType] = None
     color: Optional[str] = Field(default=None, max_length=30)
     note: Optional[str] = Field(default=None, max_length=500)
+    emoji: Optional[str] = Field(default=None, max_length=16)
+    completed: Optional[bool] = None
 
 
 class SavingsGoalResponse(BaseModel):
@@ -32,6 +36,8 @@ class SavingsGoalResponse(BaseModel):
     deadline: Optional[DateType]
     color: Optional[str]
     note: Optional[str]
+    emoji: Optional[str] = "🎯"
+    completed: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,5 +55,8 @@ class ContributionResponse(BaseModel):
     amount: float
     date: DateType
     note: Optional[str]
+    created_at: Optional[datetime] = None
+    goal_name: Optional[str] = None
+    goal_emoji: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

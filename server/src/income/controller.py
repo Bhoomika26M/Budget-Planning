@@ -1,45 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from src.auth.service import SECRET_KEY, ALGORITHM
+from src.auth.dependencies import get_current_user, require_premium
 from src.database.core import get_db
 from src.entities.user import User
-from src.income.models import IncomeCreate, IncomeUpdate, IncomeResponse
+from src.income.models import IncomeCreate, IncomeResponse, IncomeUpdate
 from src.income.service import (
     create_income,
-    list_income,
-    find_income,
-    update_income,
     delete_income,
+    find_income,
+    list_income,
+    update_income,
 )
 
 router = APIRouter(prefix="/api/income", tags=["Income"])
-security = HTTPBearer()
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-):
-    try:
-        payload = jwt.decode(
-            credentials.credentials,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
-        )
-        user_id = int(payload["sub"])
-    except (JWTError, ValueError, KeyError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
-
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
 
 
 @router.post("/", response_model=IncomeResponse, status_code=201)
@@ -53,10 +27,11 @@ def add_income(
 
 @router.get("/", response_model=list[IncomeResponse])
 def get_income(
+    month: str | None = Query(default=None, pattern=r"^\d{4}-\d{2}$"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    return list_income(db, user.id)
+    return list_income(db, user.id, month=month)
 
 
 @router.patch("/{income_id}", response_model=IncomeResponse)
@@ -76,7 +51,7 @@ def edit_income(
 def remove_income(
     income_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     income = find_income(db, user.id, income_id)
     if income is None:

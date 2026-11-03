@@ -1,6 +1,9 @@
-
 from datetime import date
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+ExpenseStatus = Literal["Completed", "Pending", "Cancelled"]
 
 
 class ExpenseCreate(BaseModel):
@@ -8,6 +11,7 @@ class ExpenseCreate(BaseModel):
     amount: float = Field(gt=0)
     description: str | None = Field(default=None, max_length=255)
     expense_date: date
+    status: ExpenseStatus = "Completed"
 
 
 class ExpenseUpdate(BaseModel):
@@ -15,6 +19,7 @@ class ExpenseUpdate(BaseModel):
     amount: float | None = Field(default=None, gt=0)
     description: str | None = Field(default=None, max_length=255)
     expense_date: date | None = None
+    status: ExpenseStatus | None = None
 
 
 class ExpenseResponse(BaseModel):
@@ -24,5 +29,6 @@ class ExpenseResponse(BaseModel):
     amount: float
     description: str | None
     expense_date: date
+    status: str = "Completed"
 
     model_config = ConfigDict(from_attributes=True)

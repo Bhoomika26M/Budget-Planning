@@ -1,55 +1,28 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from src.auth.service import SECRET_KEY, ALGORITHM
+from src.auth.dependencies import get_current_user, require_premium
 from src.database.core import get_db
 from src.entities.user import User
 from src.savings.models import (
-    SavingsGoalCreate,
-    SavingsGoalUpdate,
-    SavingsGoalResponse,
     ContributionCreate,
     ContributionResponse,
+    SavingsGoalCreate,
+    SavingsGoalResponse,
+    SavingsGoalUpdate,
 )
 from src.savings.service import (
-    create_goal,
-    list_goals,
-    find_goal,
-    update_goal,
-    delete_goal,
     add_contribution,
+    create_goal,
+    delete_goal,
+    find_goal,
+    list_all_contributions,
     list_contributions,
+    list_goals,
+    update_goal,
 )
 
 router = APIRouter(prefix="/api/savings", tags=["Savings"])
-security = HTTPBearer()
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-):
-    try:
-        payload = jwt.decode(
-            credentials.credentials,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
-        )
-        user_id = int(payload["sub"])
-    except (JWTError, ValueError, TypeError, KeyError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired authentication token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found.")
-    return user
 
 
 @router.post("/", response_model=SavingsGoalResponse, status_code=201)
@@ -72,6 +45,15 @@ def get_savings_goals(
     user: User = Depends(get_current_user),
 ):
     return list_goals(db, user.id)
+
+
+# Declared before "/{goal_id}" so "contributions" is not parsed as an id.
+@router.get("/contributions", response_model=list[ContributionResponse])
+def get_all_contributions(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return list_all_contributions(db, user.id)
 
 
 @router.get("/{goal_id}", response_model=SavingsGoalResponse)
@@ -97,11 +79,6 @@ def edit_savings_goal(
     if goal is None:
         raise HTTPException(status_code=404, detail="Savings goal not found.")
 
-    changes = data.model_dump(exclude_unset=True)
-    if "name" in changes and changes["name"] is not None:
-        if not changes["name"].strip():
-            raise HTTPException(status_code=400, detail="Goal name cannot be empty.")
-
     try:
         return update_goal(db, goal, data)
     except ValueError as exc:
@@ -112,7 +89,7 @@ def edit_savings_goal(
 def remove_savings_goal(
     goal_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_premium),
 ):
     goal = find_goal(db, user.id, goal_id)
     if goal is None:

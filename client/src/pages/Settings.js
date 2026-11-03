@@ -1,328 +1,392 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { AlertTriangle, CheckCircle, Chrome, Eye, Github, Lock, Trash2 } from "lucide-react";
+import Card from "../components/Cards/Card";
+import HelpFeedbackCard from "../components/Cards/HelpFeedbackCard";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
+import { toProfile } from "../services/mappers";
 
-import React, { useEffect, useState } from "react";
-import {
-  UserRound,
-  Bell,
-  Palette,
-  Wallet,
-  Save,
-  RotateCcw,
-  CheckCircle2,
-} from "lucide-react";
-import "./Settings.css";
-
-const SETTINGS_KEY = "budgetbuddy_settings_v1";
-
-const DEFAULT_SETTINGS = {
-  fullName: "Anna Grace",
-  email: "",
-  currency: "INR",
-  monthlyBudget: "30000",
-  budgetAlerts: true,
-  savingsReminders: true,
-  weeklySummary: true,
-  emailNotifications: false,
-  theme: "light",
-};
-
-export default function Settings() {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [saved, setSaved] = useState(false);
+export default function SettingsScreen() {
+  const { dark, setDark } = useOutletContext();
+  const { user: profile, setUser, updateProfile, logout } = useAuth();
+  const navigate = useNavigate();
+  const [toast, setToast] = useState("");
+  const [toastType, setToastType] = useState("success");
+  const prefs = { email: profile.pref_email, reports: profile.pref_reports, alerts: profile.pref_alerts };
+  const [oauthProviders, setOauthProviders] = useState({ google: false, github: false });
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(SETTINGS_KEY);
-
-      if (stored) {
-        setSettings({
-          ...DEFAULT_SETTINGS,
-          ...JSON.parse(stored),
-        });
-      }
-    } catch {
-      // Keep defaults if saved settings cannot be read.
-    }
+    api.oauthProviders().then(setOauthProviders).catch(() => {});
   }, []);
 
-  function updateSetting(key, value) {
-    setSettings((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
-    setSaved(false);
-  }
-
-  function saveSettings(event) {
-    event.preventDefault();
-
+  async function togglePref(key) {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      setSaved(true);
-
-      if (settings.theme === "dark") {
-        document.documentElement.dataset.theme = "dark";
-      } else {
-        delete document.documentElement.dataset.theme;
-      }
-    } catch {
-      setSaved(false);
-      window.alert("Unable to save settings in this browser.");
+      await updateProfile({ [key]: !profile[key] });
+      showToast("Preferences saved.");
+    } catch (err) {
+      showToast(err.message, "error");
     }
   }
 
-  function resetSettings() {
-    setSettings(DEFAULT_SETTINGS);
-    localStorage.removeItem(SETTINGS_KEY);
-    delete document.documentElement.dataset.theme;
-    setSaved(false);
+  async function deleteAccount() {
+    try {
+      await api.deleteAccount();
+      logout();
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setShowDeleteConfirm(false);
+      showToast(err.message, "error");
+    }
   }
-
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [curPwd, setCurPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdError, setPwdError] = useState("");
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  function showToast(msg, type = "success") {
+    setToast(msg);
+    setToastType(type);
+    setTimeout(() => setToast(""), 3000);
+  }
+  async function handleChangePassword() {
+    if (!curPwd) {
+      setPwdError("Enter your current password.");
+      return;
+    }
+    if (newPwd.length < 6) {
+      setPwdError("New password must be at least 6 characters.");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setPwdError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.changePassword(curPwd, newPwd);
+      setCurPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+      setPwdError("");
+      showToast("Password updated successfully!");
+    } catch (err) {
+      setPwdError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <section className="settings-page">
-      <header className="settings-header">
-        <div>
-          <span className="settings-eyebrow">PERSONALIZE YOUR EXPERIENCE</span>
-          <h1>Settings</h1>
-          <p>Manage your profile, financial preferences, and notifications.</p>
-        </div>
-      </header>
-
-      {saved && (
-        <div className="settings-success" role="status">
-          <CheckCircle2 size={19} />
-          Your settings have been saved successfully.
+    <div className="space-y-6">
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl text-white text-sm font-medium shadow-lg flex items-center gap-2"
+          style={{
+            background:
+              toastType === "success"
+                ? "linear-gradient(135deg, #2E93C7, #0D6D91)"
+                : "linear-gradient(135deg, #e53e3e, #c53030)",
+          }}
+        >
+          {toastType === "success" ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+          {toast}
         </div>
       )}
 
-      <form onSubmit={saveSettings}>
-        <section className="settings-card">
-          <div className="settings-card-heading">
-            <div className="settings-heading-icon profile">
-              <UserRound size={21} />
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: "rgba(12,42,69,0.6)",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm border border-border p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                <Trash2 size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold font-['Poppins'] text-foreground">Delete Account</h3>
+                <p className="text-xs text-muted-foreground">This cannot be undone.</p>
+              </div>
             </div>
-            <div>
-              <h2>Profile information</h2>
-              <p>Manage your personal details.</p>
-            </div>
-          </div>
-
-          <div className="settings-form-grid">
-            <label>
-              Full name
-              <input
-                type="text"
-                value={settings.fullName}
-                onChange={(event) =>
-                  updateSetting("fullName", event.target.value)
-                }
-                required
-              />
-            </label>
-
-            <label>
-              Email address
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={settings.email}
-                onChange={(event) =>
-                  updateSetting("email", event.target.value)
-                }
-              />
-            </label>
-          </div>
-
-          <p className="settings-note">
-            These profile fields are saved locally and do not change your login
-            account details.
-          </p>
-        </section>
-
-        <section className="settings-card">
-          <div className="settings-card-heading">
-            <div className="settings-heading-icon finance">
-              <Wallet size={21} />
-            </div>
-            <div>
-              <h2>Financial preferences</h2>
-              <p>Set your default currency and monthly budget.</p>
-            </div>
-          </div>
-
-          <div className="settings-form-grid">
-            <label>
-              Preferred currency
-              <select
-                value={settings.currency}
-                onChange={(event) =>
-                  updateSetting("currency", event.target.value)
-                }
+            <p className="text-sm text-muted-foreground">
+              All your data — expenses, budgets, savings goals — will be permanently deleted. Are you
+              absolutely sure?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-secondary transition-colors"
               >
-                <option value="INR">INR — Indian Rupee (₹)</option>
-                <option value="USD">USD — US Dollar ($)</option>
-                <option value="EUR">EUR — Euro (€)</option>
-                <option value="GBP">GBP — British Pound (£)</option>
-              </select>
-            </label>
-
-            <label>
-              Monthly budget
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={settings.monthlyBudget}
-                onChange={(event) =>
-                  updateSetting("monthlyBudget", event.target.value)
-                }
-                required
-              />
-            </label>
-          </div>
-
-          <p className="settings-note">
-            These preferences do not automatically change the budgets already
-            stored in your planner.
-          </p>
-        </section>
-
-        <section className="settings-card">
-          <div className="settings-card-heading">
-            <div className="settings-heading-icon notifications">
-              <Bell size={21} />
-            </div>
-            <div>
-              <h2>Notification preferences</h2>
-              <p>Choose which financial updates you want to see.</p>
+                Cancel
+              </button>
+              <button
+                onClick={deleteAccount}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
+                style={{
+                  background: "linear-gradient(135deg, #e53e3e, #c53030)",
+                }}
+              >
+                Yes, Delete
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="settings-options">
-            <label className="settings-toggle-row">
-              <span>
-                <strong>Budget alerts</strong>
-                <small>Get notified when spending approaches a budget limit.</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.budgetAlerts}
-                onChange={(event) =>
-                  updateSetting("budgetAlerts", event.target.checked)
-                }
-              />
-            </label>
+      <div>
+        <h2 className="text-2xl font-bold font-['Poppins'] text-foreground">Settings</h2>
+        <p className="text-muted-foreground text-sm mt-0.5">Manage your preferences and account security</p>
+      </div>
 
-            <label className="settings-toggle-row">
-              <span>
-                <strong>Savings reminders</strong>
-                <small>Stay on track with your savings goals.</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.savingsReminders}
-                onChange={(event) =>
-                  updateSetting("savingsReminders", event.target.checked)
-                }
-              />
-            </label>
-
-            <label className="settings-toggle-row">
-              <span>
-                <strong>Weekly summary</strong>
-                <small>Review your spending and income activity.</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.weeklySummary}
-                onChange={(event) =>
-                  updateSetting("weeklySummary", event.target.checked)
-                }
-              />
-            </label>
-
-            <label className="settings-toggle-row">
-              <span>
-                <strong>Email notifications</strong>
-                <small>Preference for future email notification support.</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.emailNotifications}
-                onChange={(event) =>
-                  updateSetting("emailNotifications", event.target.checked)
-                }
-              />
-            </label>
-          </div>
-        </section>
-
-        <section className="settings-card">
-          <div className="settings-card-heading">
-            <div className="settings-heading-icon appearance">
-              <Palette size={21} />
-            </div>
-            <div>
-              <h2>Appearance</h2>
-              <p>Choose your preferred display theme.</p>
-            </div>
-          </div>
-
-          <div className="settings-theme-options">
-            <label
-              className={`settings-theme-choice ${
-                settings.theme === "light" ? "selected" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value="light"
-                checked={settings.theme === "light"}
-                onChange={() => updateSetting("theme", "light")}
-              />
-              <span className="settings-theme-preview light-preview" />
-              <span>Light mode</span>
-            </label>
-
-            <label
-              className={`settings-theme-choice ${
-                settings.theme === "dark" ? "selected" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value="dark"
-                checked={settings.theme === "dark"}
-                onChange={() => updateSetting("theme", "dark")}
-              />
-              <span className="settings-theme-preview dark-preview" />
-              <span>Dark mode</span>
-            </label>
-          </div>
-
-          <p className="settings-note">
-            Dark mode applies a theme attribute to the document. Your other
-            pages need matching CSS rules to display fully in dark mode.
-          </p>
-        </section>
-
-        <div className="settings-footer">
-          <button
-            type="button"
-            className="settings-reset-button"
-            onClick={resetSettings}
+      {/* Preferences */}
+      <Card className="p-5 space-y-1">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Preferences</h3>
+        {[
+          {
+            key: "dark",
+            label: "Dark Mode",
+            desc: "Switch to dark interface",
+            value: dark,
+            toggle: () => setDark(!dark),
+          },
+          {
+            key: "email",
+            label: "Email Notifications",
+            desc: "Receive account emails (needs SendGrid on the server)",
+            value: prefs.email,
+            toggle: () => togglePref("pref_email"),
+          },
+          {
+            key: "reports",
+            label: "Monthly Reports",
+            desc: "Notify me when last month's report is ready",
+            value: prefs.reports,
+            toggle: () => togglePref("pref_reports"),
+          },
+          {
+            key: "alerts",
+            label: "Spending Alerts",
+            desc: "Budget limit, goal deadline & savings reminders",
+            value: prefs.alerts,
+            toggle: () => togglePref("pref_alerts"),
+          },
+        ].map((item) => (
+          <div
+            key={item.key}
+            className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
           >
-            <RotateCcw size={17} />
-            Reset settings
-          </button>
+            <div>
+              <p className="text-sm font-medium text-foreground">{item.label}</p>
+              <p className="text-xs text-muted-foreground">{item.desc}</p>
+            </div>
+            <button
+              onClick={item.toggle}
+              className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${item.value ? "bg-primary" : "bg-switch-background"}`}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${item.value ? "left-7" : "left-1"}`}
+              />
+            </button>
+          </div>
+        ))}
+      </Card>
 
-          <button type="submit" className="settings-save-button">
-            <Save size={17} />
-            Save changes
+      {/* Change Password */}
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Change Password</h3>
+        <div className="space-y-4">
+          {pwdError && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100">
+              <AlertTriangle size={13} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600">{pwdError}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Current Password</label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="password"
+                value={curPwd}
+                onChange={(e) => {
+                  setCurPwd(e.target.value);
+                  setPwdError("");
+                }}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Enter current password"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">New Password</label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type={showNewPwd ? "text" : "password"}
+                value={newPwd}
+                onChange={(e) => {
+                  setNewPwd(e.target.value);
+                  setPwdError("");
+                }}
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                placeholder="Min. 6 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPwd((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Eye size={14} />
+              </button>
+            </div>
+            {newPwd && (
+              <div className="mt-1.5 flex gap-1 items-center">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="flex-1 h-1 rounded-full transition-colors"
+                    style={{
+                      background:
+                        newPwd.length >= i * 3
+                          ? newPwd.length >= 10
+                            ? "#22c55e"
+                            : newPwd.length >= 7
+                              ? "#f59e0b"
+                              : "#e53e3e"
+                          : "var(--muted)",
+                    }}
+                  />
+                ))}
+                <span className="text-[10px] text-muted-foreground ml-1">
+                  {newPwd.length >= 10 ? "Strong" : newPwd.length >= 7 ? "Medium" : "Weak"}
+                </span>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Confirm New Password</label>
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="password"
+                value={confirmPwd}
+                onChange={(e) => {
+                  setConfirmPwd(e.target.value);
+                  setPwdError("");
+                }}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition ${confirmPwd && confirmPwd !== newPwd ? "border-red-300" : "border-border"}`}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleChangePassword}
+            disabled={busy}
+            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium transition hover:opacity-90 disabled:opacity-60"
+            style={{
+              background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+            }}
+          >
+            {busy ? "Updating…" : "Update Password"}
           </button>
         </div>
-      </form>
-    </section>
+      </Card>
+
+      {/* Connected Accounts */}
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Connected Accounts</h3>
+        <div className="space-y-3">
+          {[
+            {
+              name: "Google",
+              icon: Chrome,
+              email: profile.email,
+            },
+            {
+              name: "GitHub",
+              icon: Github,
+              email: profile.email,
+            },
+          ].map((a) => {
+            const provider = a.name.toLowerCase();
+            const isConnected = profile.oauth_provider === provider;
+            return (
+              <div
+                key={a.name}
+                className="flex items-center justify-between p-4 rounded-xl border border-border"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <a.icon size={18} className="text-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{a.name}</p>
+                    <p className="text-xs text-muted-foreground">{isConnected ? a.email : "Not connected"}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (isConnected) {
+                      try {
+                        setUser(toProfile(await api.unlinkOAuth()));
+                        showToast(`${a.name} disconnected successfully!`);
+                      } catch (err) {
+                        showToast(err.message, "error");
+                      }
+                    } else if (oauthProviders[provider]) {
+                      // Signing in with the provider links it to this email address.
+                      window.location.href = api.oauthLoginUrl(provider);
+                    } else {
+                      showToast(`${a.name} sign-in is not configured on the server yet.`, "error");
+                    }
+                  }}
+                  className="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  style={
+                    isConnected
+                      ? {
+                          border: "1px solid var(--border)",
+                          color: "var(--muted-foreground)",
+                        }
+                      : {
+                          background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+                          color: "#fff",
+                        }
+                  }
+                >
+                  {isConnected ? "Disconnect" : "Connect"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Help & feedback (shows up in the admin Feedback / Reported Issues tabs) */}
+      <HelpFeedbackCard onDone={(msg) => showToast(msg)} onError={(msg) => showToast(msg, "error")} />
+
+      {/* Danger Zone */}
+      <Card
+        className="p-5 border-red-100"
+        style={{
+          borderColor: "#fecaca",
+        }}
+      >
+        <h3 className="text-sm font-semibold text-red-600 mb-1">Danger Zone</h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Once deleted, your account and all data cannot be recovered.
+        </p>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+        >
+          <Trash2 size={14} /> Delete Account
+        </button>
+      </Card>
+    </div>
   );
 }

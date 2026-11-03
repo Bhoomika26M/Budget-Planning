@@ -1,175 +1,153 @@
-﻿import React, { useEffect, useState } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  Outlet,
-  useLocation,
-} from "react-router-dom";
-import "./assets/theme-overrides.css";
-import Home from "./pages/Home";
-import Budget from "./pages/Budget";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+
+import AccessDenied from "./components/Access/AccessDenied";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { FinanceProvider } from "./context/FinanceContext";
+import { ToastProvider } from "./context/ToastContext";
+import PageContainer from "./layout/PageContainer";
+import Admin from "./pages/Admin";
 import Analytics from "./pages/Analytics";
+import Budget from "./pages/Budget";
+import Expenses from "./pages/Expenses";
+import Home from "./pages/Home";
 import Income from "./pages/Income";
-import Savings from "./pages/Savings";
+import Login from "./pages/Login";
 import Notifications from "./pages/Notifications";
+import Profile from "./pages/Profile";
+import Reports from "./pages/Reports";
+import Savings from "./pages/Savings";
 import Settings from "./pages/Settings";
-import LoginForm from "./features/authentication/components/LoginForm";
-import SignupForm from "./features/authentication/components/SignupForm";
+import { ROLE_SCREENS } from "./utils/permissions";
 
-import Sidebar from "./layout/Sidebar";
-import Navbar from "./layout/Navbar";
-
-import api, { clearToken, getToken } from "./services/api";
-
-function AppLayout({ user, onLogout }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [dark, setDark] = useState(false);
-  const location = useLocation();
-
-  const pageTitles = {
-    "/": "Dashboard",
-    "/budget": "Budget Planner",
-    "/analytics": "Analytics",
-    "/income": "Income",
-    "/savings": "Savings",
-  };
-
+function FullScreenMessage({ children }) {
   return (
-    <div className={dark ? "app-layout dark-theme" : "app-layout"}>
-      <Sidebar
-        user={user}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={onLogout}
-      />
-
-      <div className="app-main">
-        <Navbar
-          pageTitle={pageTitles[location.pathname] || "BudgetBuddy"}
-          user={user}
-          dark={dark}
-          onToggleTheme={() => setDark((previous) => !previous)}
-          onMenuClick={() => setSidebarOpen(true)}
-        />
-
-        <main className="app-page-content">
-          <Outlet />
-        </main>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm" role="status">
+      {children}
     </div>
   );
 }
 
-function AppRoutes() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+/** Only signed-in users; admins are sent to the admin panel and vice versa. */
+function RequireAuth({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <FullScreenMessage>Loading BudgetBuddy…</FullScreenMessage>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+/** Screen-level role check (Students see an upgrade prompt for Premium screens). */
+function RoleRoute({ screen, children }) {
+  const { user } = useAuth();
+  const role = user?.role ?? "student";
+
+  if (ROLE_SCREENS[role]?.includes(screen)) return children;
+  if (role === "admin") return <Navigate to="/admin-dashboard" replace />;
+  if (screen.startsWith("admin-")) return <Navigate to="/" replace />;
+  // PricingModal upgrades the account itself; the new role then unlocks this route.
+  return <AccessDenied role={role} screen={screen} />;
+}
+
+function HomeRedirect() {
+  const { user } = useAuth();
+  if (user?.role === "admin") return <Navigate to="/admin-dashboard" replace />;
+  return (
+    <RoleRoute screen="dashboard">
+      <Home />
+    </RoleRoute>
+  );
+}
+
+/** Google / GitHub sign-in returns here with #token=... */
+function OAuthCallback() {
+  const { loginWithToken } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    let active = true;
-
-    const handleAuthenticated = (event) => {
-      if (!active) return;
-
-      setUser(event.detail);
-      setAuthLoading(false);
-    };
-
-    const handleUnauthorized = () => {
-      if (!active) return;
-
-      setUser(null);
-      setAuthLoading(false);
-    };
-
-    window.addEventListener("bb:authenticated", handleAuthenticated);
-    window.addEventListener("bb:unauthorized", handleUnauthorized);
-
-    async function restoreSession() {
-      if (!getToken()) {
-        if (active) {
-          setUser(null);
-          setAuthLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const currentUser = await api.me();
-
-        if (active) {
-          setUser(currentUser);
-        }
-      } catch {
-        clearToken();
-
-        if (active) {
-          setUser(null);
-        }
-      } finally {
-        if (active) {
-          setAuthLoading(false);
-        }
-      }
+    const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+    if (!token) {
+      navigate("/login?oauth_error=1", { replace: true });
+      return;
     }
+    loginWithToken(token)
+      .then((me) => navigate(me.role === "admin" ? "/admin-dashboard" : "/", { replace: true }))
+      .catch((err) => setError(err.message));
+  }, [loginWithToken, navigate]);
 
-    restoreSession();
+  return <FullScreenMessage>{error || "Signing you in…"}</FullScreenMessage>;
+}
 
-    return () => {
-      active = false;
-      window.removeEventListener("bb:authenticated", handleAuthenticated);
-      window.removeEventListener("bb:unauthorized", handleUnauthorized);
-    };
-  }, []);
+const SCREENS = [
+  ["expenses", "/expenses", <Expenses />],
+  ["income", "/income", <Income />],
+  ["budgets", "/budget", <Budget />],
+  ["savings", "/savings", <Savings />],
+  ["analytics", "/analytics", <Analytics />],
+  ["reports", "/reports", <Reports />],
+  ["notifications", "/notifications", <Notifications />],
+  ["profile", "/profile", <Profile />],
+  ["settings", "/settings", <Settings />],
+];
 
-  function handleLogout() {
-    clearToken();
-    setUser(null);
-  }
+const ADMIN_SCREENS = [
+  "admin-dashboard",
+  "admin-users",
+  "admin-subscriptions",
+  "admin-categories",
+  "admin-analytics",
+  "admin-logs",
+  "admin-announcements",
+  "admin-feedback",
+  "admin-issues",
+  "admin-permissions",
+];
 
-  if (authLoading) {
-    return (
-      <div className="auth-loading" role="status">
-        Loading BudgetBuddy...
-      </div>
-    );
-  }
+function AppRoutes() {
+  const { user, loading } = useAuth();
 
   return (
     <Routes>
       <Route
         path="/login"
-        element={user ? <Navigate to="/" replace /> : <LoginForm />}
+        element={
+          loading ? (
+            <FullScreenMessage>Loading BudgetBuddy…</FullScreenMessage>
+          ) : user ? (
+            <Navigate to={user.role === "admin" ? "/admin-dashboard" : "/"} replace />
+          ) : (
+            <Login />
+          )
+        }
       />
-
-      <Route
-        path="/signup"
-        element={user ? <Navigate to="/" replace /> : <SignupForm />}
-      />
+      <Route path="/signup" element={<Navigate to="/login?signup=1" replace />} />
+      <Route path="/oauth-callback" element={<OAuthCallback />} />
 
       <Route
         element={
-          user ? (
-            <AppLayout user={user} onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/login" replace />
-          )
+          <RequireAuth>
+            <PageContainer />
+          </RequireAuth>
         }
       >
-        <Route index element={<Home />} />
-        <Route path="budget" element={<Budget />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="income" element={<Income />} />
-        <Route path="savings" element={<Savings />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="settings" element={<Settings />} />  
+        <Route index element={<HomeRedirect />} />
+        {SCREENS.map(([screen, path, element]) => (
+          <Route key={screen} path={path.slice(1)} element={<RoleRoute screen={screen}>{element}</RoleRoute>} />
+        ))}
+        {ADMIN_SCREENS.map((screen) => (
+          <Route
+            key={screen}
+            path={screen}
+            element={
+              <RoleRoute screen={screen}>
+                <Admin screen={screen} />
+              </RoleRoute>
+            }
+          />
+        ))}
       </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to={user ? "/" : "/login"} replace />}
-      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
@@ -177,7 +155,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <AppRoutes />
+      <ToastProvider>
+        <AuthProvider>
+          <FinanceProvider>
+            <AppRoutes />
+          </FinanceProvider>
+        </AuthProvider>
+      </ToastProvider>
     </Router>
   );
 }
