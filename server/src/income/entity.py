@@ -13,4 +13,6 @@ class Income(Base):
     amount = Column(Float, nullable=False)
     date = Column(Date, nullable=False)
     description = Column(String(255), nullable=True)
+    # Monthly | Weekly | One-time
+    frequency = Column(String(20), nullable=False, default="Monthly")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

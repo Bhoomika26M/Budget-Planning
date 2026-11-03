@@ -1,0 +1,41 @@
+# Full stack with PostgreSQL:  docker compose up --build
+# App:  http://localhost:3000     API docs:  http://localhost:8000/docs
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: budgetbuddy
+      POSTGRES_PASSWORD: budgetbuddy
+      POSTGRES_DB: budgetbuddy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budgetbuddy"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: ./server
+    environment:
+      DATABASE_URL: postgresql+psycopg2://budgetbuddy:budgetbuddy@db:5432/budgetbuddy
+      JWT_SECRET_KEY: change-me-in-production
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
