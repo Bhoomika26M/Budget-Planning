@@ -36,7 +36,25 @@ const navigationGroups = [
   },
 ];
 
+const adminNavigationGroups = [
+  {
+    label: "Administration",
+    items: [{ id: "admin", label: "User Management", icon: "♜", href: "/admin" }],
+  },
+  {
+    label: "Account",
+    items: [
+      { id: "notifications", label: "Notifications", icon: "♧", href: "/notifications" },
+      { id: "profile", label: "Profile", icon: "♙", href: "/profile" },
+      { id: "settings", label: "Settings", icon: "⚙", href: "/settings" },
+    ],
+  },
+];
+
 function Sidebar({ activeItem, currentUser, onNavigate }) {
+  const groups =
+    currentUser?.role === "admin" ? adminNavigationGroups : navigationGroups;
+
   return (
     <aside className="app-sidebar">
       <a
@@ -53,7 +71,7 @@ function Sidebar({ activeItem, currentUser, onNavigate }) {
       </a>
 
       <nav className="app-nav" aria-label="Main navigation">
-        {navigationGroups.map((group) => (
+        {groups.map((group) => (
           <section className="app-nav-group" key={group.label} aria-label={group.label}>
             <h2 className="app-nav-group-title">{group.label}</h2>
             {group.items.filter((item) => !item.adminOnly || currentUser?.role === "admin").map((item) => (

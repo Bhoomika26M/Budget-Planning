@@ -21,6 +21,7 @@ import Sidebar from "./layout/Sidebar";
 
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reports = lazy(() => import("./Reports/Reports.jsx"));
+const adminPaths = new Set(["/admin", "/notifications", "/profile", "/settings"]);
 
 const routes = {
   "/": { id: "dashboard", title: "Dashboard", Page: Dashboard },
@@ -108,10 +109,17 @@ function AppContent() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  useEffect(() => {
+    if (currentUser?.role !== "admin" || adminPaths.has(pathname)) return;
+    window.history.replaceState({}, "", "/admin");
+  }, [currentUser, pathname]);
+
   function navigateTo(path) {
-    if (getPathname() !== path) {
-      window.history.pushState({}, "", path);
-      setPathname(path);
+    const targetPath =
+      currentUser?.role === "admin" && !adminPaths.has(path) ? "/admin" : path;
+    if (getPathname() !== targetPath) {
+      window.history.pushState({}, "", targetPath);
+      setPathname(targetPath);
     }
   }
 
@@ -124,13 +132,24 @@ function AppContent() {
   if (loading) {
     return <main className="app-loading" role="status">Loading your account…</main>;
   }
-  if (!currentUser) return <AuthPage />;
+  if (!currentUser) {
+    return (
+      <AuthPage
+        onAuthenticated={(user) => {
+          if (user.role === "admin") navigateTo("/admin");
+        }}
+      />
+    );
+  }
 
-  const currentRoute = routes[pathname] ?? {
-    id: null,
-    title: "Page not found",
-    Page: NotFoundPage,
-  };
+  const currentRoute =
+    currentUser.role === "admin" && !adminPaths.has(pathname)
+      ? routes["/admin"]
+      : (routes[pathname] ?? {
+          id: null,
+          title: "Page not found",
+          Page: NotFoundPage,
+        });
   const authorizedRoute =
     currentRoute.id !== "admin" || currentUser.role === "admin"
       ? currentRoute
@@ -157,7 +176,11 @@ function AppContent() {
           currentUser={currentUser}
           onNavigate={navigateTo}
           onLogout={logout}
-          onAddTransaction={() => setShowTransactionModal(true)}
+          onAddTransaction={
+            currentUser.role === "admin"
+              ? undefined
+              : () => setShowTransactionModal(true)
+          }
         />
         <PageContainer>
           <Suspense fallback={<p role="status">Loading page...</p>}>
