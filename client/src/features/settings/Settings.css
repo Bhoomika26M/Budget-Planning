@@ -376,3 +376,35 @@ html[data-theme="dark"] .settings-page .premium-copy > p {
     max-width: 240px;
   }
 }
+.password-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.password-form-group label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.password-form-group input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  background: var(--input-bg, #fff);
+  color: var(--text-color, #222);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.password-form-group input:focus {
+  border-color: #f59e0b;
+}
+
+.settings-dialog button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

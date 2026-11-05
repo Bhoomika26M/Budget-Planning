@@ -41,3 +41,110 @@ html[data-theme="dark"] .admin-users-table td,
 html[data-theme="dark"] .admin-users-heading { border-color: var(--app-border); }
 html[data-theme="dark"] .admin-users-table select { border-color: var(--app-border); color: var(--app-text); background: #111d30; }
 @media (max-width: 650px) { .admin-content { padding: 28px 16px; } .admin-title { align-items: flex-start; flex-direction: column; } .admin-role-summary { gap: 8px; } .admin-summary-card { align-items: flex-start; flex-direction: column-reverse; gap: 10px; padding: 13px; } .admin-summary-card strong { font-size: 20px; } .admin-users-table th,.admin-users-table td { padding: 12px; } }
+.admin-success {
+  margin: 15px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #137647;
+  background: #e8f8ef;
+}
+
+.admin-pending-count {
+  padding: 7px 11px;
+  border-radius: 8px;
+  color: #9a6b00;
+  background: #fff4d6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.premium-request-status {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.premium-request-status.pending {
+  color: #9a6b00;
+  background: #fff4d6;
+}
+
+.premium-request-status.approved {
+  color: #137647;
+  background: #e8f8ef;
+}
+
+.premium-request-status.rejected {
+  color: #a32626;
+  background: #fff0f0;
+}
+
+.premium-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.premium-approve-button,
+.premium-reject-button {
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.premium-approve-button {
+  color: #137647;
+  background: #e0f6e9;
+}
+
+.premium-reject-button {
+  color: #a32626;
+  background: #ffe7e7;
+}
+
+.premium-approve-button:disabled,
+.premium-reject-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+html[data-theme="dark"] .admin-success {
+  color: #86efac;
+  background: #163528;
+}
+
+html[data-theme="dark"] .admin-pending-count {
+  color: #facc15;
+  background: #423719;
+}
+
+html[data-theme="dark"] .premium-request-status.pending {
+  color: #facc15;
+  background: #423719;
+}
+
+html[data-theme="dark"] .premium-request-status.approved {
+  color: #86efac;
+  background: #163528;
+}
+
+html[data-theme="dark"] .premium-request-status.rejected {
+  color: #fca5a5;
+  background: #451f25;
+}
+
+html[data-theme="dark"] .premium-approve-button {
+  color: #86efac;
+  background: #163528;
+}
+
+html[data-theme="dark"] .premium-reject-button {
+  color: #fca5a5;
+  background: #451f25;
+}
