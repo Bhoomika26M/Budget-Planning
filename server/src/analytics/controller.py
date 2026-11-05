@@ -36,10 +36,10 @@ def fetch_analytics(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    if user.role not in {"premium", "admin"}:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Premium access required",
-        )
+    if not user.is_premium and user.role != "admin":
+     raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Premium access required",
+    )
 
     return AnalyticsResponse(**get_analytics(db, user.id))

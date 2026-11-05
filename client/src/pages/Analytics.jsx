@@ -29,7 +29,7 @@ export default function Analytics() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isPremium = currentUser?.role === 'premium' || currentUser?.role === 'admin';
+  const isPremium = currentUser?.is_premium === true || currentUser?.role === 'admin';
 
   useEffect(() => {
     let isMounted = true;

@@ -1,10 +1,13 @@
 
-
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import "./Settings.css";
 
-const SETTINGS_API = `${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"}/settings/`;
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+
+const SETTINGS_API = `${API_BASE}/settings/`;
+const AUTH_API = `${API_BASE}/auth`;
 
 const defaultSettings = {
   emailNotifications: true,
@@ -24,12 +27,20 @@ function Settings({
   onSettingChange,
   transactions = [],
   onExportData,
-  onChangePassword,
   onDeleteAccount,
   isPremium = false,
-  onUpgrade,
 }) {
-  const { token } = useAuth();
+  const { token, updatePremiumStatus, currentUser } = useAuth();
+
+  const [premiumActive, setPremiumActive] = useState(
+    Boolean(currentUser?.is_premium || isPremium)
+  );
+
+  const [premiumRequestStatus, setPremiumRequestStatus] =
+    useState("none");
+
+  const [upgrading, setUpgrading] = useState(false);
+
   const [preferences, setPreferences] = useState({
     ...defaultSettings,
     darkMode: localStorage.getItem("budgetbuddy-theme") === "dark",
@@ -37,130 +48,351 @@ function Settings({
   });
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const [status, setStatus] = useState("");
 
-    useEffect(() => {
+  // Load Premium request status from backend
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPremiumStatus() {
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          `${AUTH_API}/premium-request/status`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail || "Could not load Premium status."
+          );
+        }
+
+        if (cancelled) return;
+
+        const approved = Boolean(data.is_premium);
+
+        setPremiumActive(approved);
+        setPremiumRequestStatus(data.status || "none");
+
+        updatePremiumStatus(approved);
+      } catch (error) {
+        console.error("Premium status error:", error);
+      }
+    }
+
+    loadPremiumStatus();
+
+    // Refresh status when user returns to the Settings page
+    const handleFocus = () => {
+      loadPremiumStatus();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [token, updatePremiumStatus]);
+
+  // Apply dark mode
+  useEffect(() => {
     const theme = preferences.darkMode ? "dark" : "light";
+
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("budgetbuddy-theme", theme);
+
     window.dispatchEvent(new Event("budgetbuddy-theme-change"));
   }, [preferences.darkMode]);
 
+  // Sync theme changes from navbar
   useEffect(() => {
     const syncFromNavbar = () => {
-      const isDark = document.documentElement.dataset.theme === "dark";
+      const isDark =
+        document.documentElement.dataset.theme === "dark";
+
       setPreferences((previous) =>
-        previous.darkMode === isDark ? previous : { ...previous, darkMode: isDark }
+        previous.darkMode === isDark
+          ? previous
+          : { ...previous, darkMode: isDark }
       );
     };
 
-    window.addEventListener("budgetbuddy-theme-change", syncFromNavbar);
-    return () => window.removeEventListener("budgetbuddy-theme-change", syncFromNavbar);
+    window.addEventListener(
+      "budgetbuddy-theme-change",
+      syncFromNavbar
+    );
+
+    return () =>
+      window.removeEventListener(
+        "budgetbuddy-theme-change",
+        syncFromNavbar
+      );
   }, []);
-  
-useEffect(() => {
-  async function loadSettings() {
+
+  // Load settings from backend
+  useEffect(() => {
+    async function loadSettings() {
+      if (!token) return;
+
+      try {
+        const response = await fetch(SETTINGS_API, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Could not load settings");
+        }
+
+        const data = await response.json();
+
+        setPreferences((previous) => ({
+          ...previous,
+          emailNotifications: data.email_notifications,
+          pushNotifications: data.push_notifications,
+          budgetAlerts: data.budget_alerts,
+          billReminders: data.bill_reminders,
+          weeklyReport: data.weekly_report,
+          monthlyReport: data.monthly_report,
+          darkMode: data.dark_mode,
+          currency: data.currency,
+          language: data.language,
+        }));
+      } catch (error) {
+        setStatus("Could not load settings from the server.");
+        console.error("Settings loading error:", error);
+      }
+    }
+
+    loadSettings();
+  }, [token]);
+
+  // Update settings
+  async function updateSetting(key, value) {
+    if (key === "twoFactorAuth") {
+      setStatus(
+        "Two-factor authentication is not connected to the backend yet."
+      );
+      return;
+    }
+
+    if (!token) {
+      setStatus("Please log in to update your settings.");
+      return;
+    }
+
+    const previous = { ...preferences };
+    const updated = { ...previous, [key]: value };
+
+    setPreferences(updated);
+    setStatus("");
+
+    const payload = {
+      email_notifications: updated.emailNotifications,
+      push_notifications: updated.pushNotifications,
+      budget_alerts: updated.budgetAlerts,
+      bill_reminders: updated.billReminders,
+      weekly_report: updated.weeklyReport,
+      monthly_report: updated.monthlyReport,
+      dark_mode: updated.darkMode,
+      currency: updated.currency,
+      language: updated.language,
+    };
+
     try {
       const response = await fetch(SETTINGS_API, {
-        headers: { Authorization: `Bearer ${token}` },
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
-        throw new Error("Could not load settings");
+        throw new Error(
+          `HTTP ${response.status}: ${
+            responseText || response.statusText
+          }`
+        );
       }
+
+      setStatus("Settings saved successfully.");
+
+      if (onSettingChange) {
+        onSettingChange(key, value);
+      }
+    } catch (error) {
+      setPreferences(previous);
+
+      console.error("Settings save error:", error);
+
+      setStatus(
+        error instanceof TypeError
+          ? "Could not connect to the settings API. Check the server and CORS configuration."
+          : `Could not save settings: ${error.message}`
+      );
+    }
+  }
+
+  // Submit Premium request for administrator approval
+  async function upgradePremium() {
+    if (!token || upgrading) return;
+
+    setUpgrading(true);
+    setStatus("");
+
+    try {
+      const response = await fetch(
+        `${AUTH_API}/premium-request`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await response.json();
 
-      setPreferences((previous) => ({
-        ...previous,
-        emailNotifications: data.email_notifications,
-        pushNotifications: data.push_notifications,
-        budgetAlerts: data.budget_alerts,
-        billReminders: data.bill_reminders,
-        weeklyReport: data.weekly_report,
-        monthlyReport: data.monthly_report,
-        darkMode: data.dark_mode,
-        currency: data.currency,
-        language: data.language,
-      }));
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to submit Premium request."
+        );
+      }
 
-    } catch (error) {
-      setStatus("Could not load settings from the server.");
-      console.error(error);
-    }
-  }
+      setPremiumRequestStatus(data.status || "pending");
 
-  loadSettings();
-}, [token]);
-
-async function updateSetting(key, value) {
-// Two-factor authentication is not supported by the current backend.
-if (key === "twoFactorAuth") {
-  setStatus(
-    "Two-factor authentication is not connected to the backend yet."
-  );
-  return;
-}
-
-const previous = { ...preferences };
-const updated = { ...previous, [key]: value };
-setPreferences(updated);
-  setStatus("");
-
-  const payload = {
-    email_notifications: updated.emailNotifications,
-    push_notifications: updated.pushNotifications,
-    budget_alerts: updated.budgetAlerts,
-    bill_reminders: updated.billReminders,
-    weekly_report: updated.weeklyReport,
-    monthly_report: updated.monthlyReport,
-    dark_mode: updated.darkMode,
-    currency: updated.currency,
-    language: updated.language,
-  };
-
-  try {
-    const response = await fetch(SETTINGS_API, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${
-          responseText || response.statusText
-        }`
+      // Do not activate Premium here.
+      // Only administrator approval can activate it.
+      setStatus(
+        data.message ||
+          "Your Premium request has been submitted. Waiting for administrator approval."
       );
+    } catch (error) {
+      console.error("Premium request error:", error);
+
+      setStatus(
+        error.message || "Could not submit Premium request."
+      );
+    } finally {
+      setUpgrading(false);
     }
-
-    setStatus("Settings saved successfully.");
-
-    if (onSettingChange) {
-      onSettingChange(key, value);
-    }
-  } catch (error) {
-    // Restore the last known values if the save failed.
-    setPreferences(previous);
-
-    console.error("Settings save error:", error);
-
-    setStatus(
-      error instanceof TypeError
-        ? "Could not connect to the settings API. Check the server and CORS configuration."
-        : `Could not save settings: ${error.message}`
-    );
   }
-}
 
+  // Open password popup
+  function openPasswordModal() {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setStatus("");
+    setShowPasswordModal(true);
+  }
 
+  // Close password popup
+  function closePasswordModal() {
+    if (changingPassword) return;
 
+    setShowPasswordModal(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  // Change password through backend
+  async function changePassword(event) {
+    event.preventDefault();
+
+    if (!token) {
+      setStatus("Please log in to change your password.");
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setStatus("Please fill in all password fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatus("New passwords do not match.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setStatus(
+        "New password must be different from the current password."
+      );
+      return;
+    }
+
+    setChangingPassword(true);
+    setStatus("");
+
+    try {
+      const response = await fetch(
+        `${AUTH_API}/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Password change failed."
+        );
+      }
+
+      setStatus(
+        data.message || "Password changed successfully!"
+      );
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordModal(false);
+    } catch (error) {
+      console.error("Password change error:", error);
+
+      setStatus(
+        error.message || "Could not change password."
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
+  // Toggle settings
   function toggle(key) {
     const checked = Boolean(preferences[key]);
 
@@ -179,6 +411,7 @@ setPreferences(updated);
     );
   }
 
+  // Export transactions as CSV
   function exportTransactions() {
     if (onExportData) {
       onExportData();
@@ -227,29 +460,17 @@ setPreferences(updated);
     link.click();
 
     URL.revokeObjectURL(url);
+
     setStatus("Transaction export downloaded.");
   }
 
-  async function changePassword() {
-    if (!onChangePassword) {
-      setStatus(
-        "Password change is not connected to the authentication service yet."
-      );
-      return;
-    }
-
-    try {
-      await onChangePassword();
-    } catch {
-      setStatus("Password change could not be completed.");
-    }
-  }
-
+  // Delete account
   async function deleteAccount() {
     if (!onDeleteAccount) {
       setStatus(
         "Account deletion is not connected to the backend yet."
       );
+
       setShowDeleteConfirm(false);
       return;
     }
@@ -257,7 +478,9 @@ setPreferences(updated);
     try {
       await onDeleteAccount();
     } catch {
-      setStatus("Account deletion failed. Please try again.");
+      setStatus(
+        "Account deletion failed. Please try again."
+      );
     }
 
     setShowDeleteConfirm(false);
@@ -265,7 +488,9 @@ setPreferences(updated);
 
   return (
     <main className="settings-page">
-      {!isPremium && (
+
+      {/* Premium Banner */}
+      {!premiumActive && (
         <section className="premium-banner">
           <div className="premium-copy">
             <h2>
@@ -273,36 +498,52 @@ setPreferences(updated);
               Upgrade to Premium
               <span className="free-badge">FREE</span>
             </h2>
+
             <p>
               Unlock full Analytics, AI financial insights,
               advanced reports, and more.
             </p>
+
             <div className="premium-features">
               <span>✦ Full Analytics</span>
               <span>✦ AI Insights</span>
               <span>✦ Advanced Reports</span>
               <span>✦ Priority Support</span>
             </div>
+
+            {premiumRequestStatus === "pending" && (
+              <p className="premium-request-message" role="status">
+                Your Premium request is pending administrator
+                approval.
+              </p>
+            )}
+
+            {premiumRequestStatus === "rejected" && (
+              <p className="premium-request-message" role="status">
+                Your previous request was rejected. You can
+                submit another request.
+              </p>
+            )}
           </div>
 
           <button
             className="upgrade-button"
             type="button"
-            onClick={() => {
-              if (onUpgrade) {
-                onUpgrade();
-              } else {
-                setStatus(
-                  "Premium upgrade is not connected yet."
-                );
-              }
-            }}
+            onClick={upgradePremium}
+            disabled={
+              upgrading || premiumRequestStatus === "pending"
+            }
           >
-            ♛ Upgrade
+            {upgrading
+              ? "Submitting..."
+              : premiumRequestStatus === "pending"
+                ? "Request Pending"
+                : "♛ Request Premium"}
           </button>
         </section>
       )}
 
+      {/* Notifications */}
       <section className="settings-card">
         <h2 className="settings-card-title">
           <span>♧</span> Notifications
@@ -351,12 +592,13 @@ setPreferences(updated);
         <div className="settings-row">
           <div>
             <h3>Monthly Report</h3>
-            <p>Comprehensive monthly financial report</p>
+            <p>Comprehensive monthly report</p>
           </div>
           {toggle("monthlyReport")}
         </div>
       </section>
 
+      {/* Appearance */}
       <section className="settings-card">
         <h2 className="settings-card-title">
           <span>☾</span> Appearance
@@ -371,6 +613,7 @@ setPreferences(updated);
         </div>
       </section>
 
+      {/* Preferences */}
       <section className="settings-card">
         <h2 className="settings-card-title">
           <span>◎</span> Preferences
@@ -417,6 +660,7 @@ setPreferences(updated);
         </div>
       </section>
 
+      {/* Security and Privacy */}
       <section className="settings-card">
         <h2 className="settings-card-title">
           <span>♢</span> Security &amp; Privacy
@@ -424,27 +668,21 @@ setPreferences(updated);
 
         <div className="settings-row">
           <div>
-            <h3>Two-Factor Authentication</h3>
-            <p>Not available yet; this account is not protected by two-factor authentication.</p>
-          </div>
-          {toggle("twoFactorAuth")}
-        </div>
-
-        <div className="settings-row">
-          <div>
             <h3>Change Password</h3>
             <p>Update your account password</p>
           </div>
+
           <button
             className="secondary-button"
             type="button"
-            onClick={changePassword}
+            onClick={openPasswordModal}
           >
             Change <span>›</span>
           </button>
         </div>
       </section>
 
+      {/* Data Management */}
       <section className="settings-card">
         <h2 className="settings-card-title">
           <span>⇩</span> Data Management
@@ -455,6 +693,7 @@ setPreferences(updated);
             <h3>Export Data</h3>
             <p>Download your transactions as CSV</p>
           </div>
+
           <button
             className="success-button"
             type="button"
@@ -467,8 +706,11 @@ setPreferences(updated);
         <div className="settings-row">
           <div>
             <h3>Delete Account</h3>
-            <p>Permanently remove your account and all data</p>
+            <p>
+              Permanently remove your account and all data
+            </p>
           </div>
+
           <button
             className="danger-button"
             type="button"
@@ -479,6 +721,95 @@ setPreferences(updated);
         </div>
       </section>
 
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="settings-dialog-backdrop">
+          <section
+            className="settings-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-title"
+          >
+            <h2 id="password-title">Change Password</h2>
+
+            <form onSubmit={changePassword}>
+              <div className="password-form-group">
+                <label htmlFor="current-password">
+                  Current Password
+                </label>
+
+                <input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) =>
+                    setCurrentPassword(event.target.value)
+                  }
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+
+              <div className="password-form-group">
+                <label htmlFor="new-password">
+                  New Password
+                </label>
+
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) =>
+                    setNewPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div className="password-form-group">
+                <label htmlFor="confirm-password">
+                  Confirm New Password
+                </label>
+
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(event.target.value)
+                  }
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div className="dialog-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={closePasswordModal}
+                  disabled={changingPassword}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="success-button"
+                  type="submit"
+                  disabled={changingPassword}
+                >
+                  {changingPassword
+                    ? "Updating..."
+                    : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation */}
       {showDeleteConfirm && (
         <div className="settings-dialog-backdrop">
           <section
@@ -487,7 +818,10 @@ setPreferences(updated);
             aria-modal="true"
             aria-labelledby="delete-title"
           >
-            <h2 id="delete-title">Delete account?</h2>
+            <h2 id="delete-title">
+              Delete account?
+            </h2>
+
             <p>
               This action may permanently remove your account
               and associated data. Continue only if you are sure.
@@ -501,6 +835,7 @@ setPreferences(updated);
               >
                 Cancel
               </button>
+
               <button
                 className="danger-button"
                 type="button"
@@ -513,11 +848,13 @@ setPreferences(updated);
         </div>
       )}
 
+      {/* Status Message */}
       {status && (
         <p className="settings-status" role="status">
           {status}
         </p>
       )}
+
     </main>
   );
 }
