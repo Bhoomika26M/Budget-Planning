@@ -1,9 +1,13 @@
-
+from auth import router as auth_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="BudgetBuddy Dashboard API")
-
+app.include_router(
+    auth_router,
+    prefix="/api/auth",
+    tags=["Authentication"]
+)
 # Allow your React frontend to communicate with FastAPI
 app.add_middleware(
     CORSMiddleware,
