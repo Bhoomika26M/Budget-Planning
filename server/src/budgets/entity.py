@@ -13,4 +13,5 @@ class Budget(Base):
     category = Column(String(100), nullable=False)
     amount = Column(Float, nullable=False)
     period = Column(String(20), nullable=False, default="monthly")
+    color = Column(String(20), nullable=True, default="#2E93C7")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

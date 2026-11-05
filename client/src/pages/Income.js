@@ -1,29 +1,10 @@
-
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  BarChart2,
-  CalendarDays,
-  CheckCircle,
-  ChevronRight,
-  CreditCard,
-  Download,
-  Edit2,
-  Plus,
-  RefreshCw,
-  TrendingUp,
-  Wallet,
-  X,
-} from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, CreditCard, Download, Edit2, Plus, Trash2, TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -31,854 +12,553 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import IncomeModal from "../components/Modals/IncomeModal";
+import Modal from "../components/Modals/Modal";
+import LockedBtn from "../components/Access/LockedButton";
+import Card from "../components/Cards/Card";
+import ConfirmDialog from "../components/Modals/ConfirmDialog";
+import { useAuth } from "../context/AuthContext";
+import { useFinance } from "../context/FinanceContext";
+import { useAnalytics } from "../context/AnalyticsContext";
+import useScreenNavigate from "../hooks/useScreenNavigate";
+import { downloadCSV } from "../utils/download";
+import { formatDisplayDate, formatMonthLabel, monthKey, parseISODate, toISODate } from "../utils/formatDate";
+import { pctChange } from "../utils/formatCurrency";
 
-import api from "../services/api";
-import "./Income.css";
+const sum = (list) => list.reduce((s, x) => s + x.amount, 0);
 
-const COLORS = ["#1e3a5f", "#2E93C7", "#5FA7D2", "#8DBEE3", "#b8d4e8", "#ddeaf5"];
-const SOURCES = ["Pocket Money", "Scholarship", "Freelance", "Part-time Job", "Other"];
-const FREQUENCIES = ["Monthly", "One-time", "Weekly"];
-
-const money = (value) =>
-  `₹${(Number(value) || 0).toLocaleString("en-IN", {
-    maximumFractionDigits: 2,
-  })}`;
-
-const isoDate = (value) => {
-  if (!value) return new Date().toISOString().slice(0, 10);
-  const text = String(value);
-  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
-
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime())
-    ? new Date().toISOString().slice(0, 10)
-    : `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-};
-
-const displayDate = (value) => {
-  if (!value) return "—";
-  const date = new Date(`${isoDate(value)}T00:00:00`);
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-const monthKey = (date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
-const normalizeIncome = (item) => ({
-  id: item.id,
-  source: item.title || item.source || "Other",
-  amount: Number(item.amount) || 0,
-  date: isoDate(item.date),
-  freq: FREQUENCIES.includes(item.category) ? item.category : "One-time",
-  description: item.description || "",
-});
-
-const toPayload = (item) => ({
-  title: item.source,
-  category: item.freq,
-  amount: Number(item.amount),
-  date: isoDate(item.date),
-  description: item.description || null,
-});
-
-function IncomeModal({ initial, onSave, onClose, saving }) {
-  const [source, setSource] = useState(initial?.source || SOURCES[0]);
-  const [amount, setAmount] = useState(
-    initial ? String(initial.amount) : ""
-  );
-  const [date, setDate] = useState(
-    initial?.date || new Date().toISOString().slice(0, 10)
-  );
-  const [freq, setFreq] = useState(initial?.freq || "Monthly");
-  const [description, setDescription] = useState(initial?.description || "");
-  const [error, setError] = useState("");
-
-  async function submit(event) {
-    event.preventDefault();
-
-    if (!source.trim()) {
-      setError("Please select an income source.");
-      return;
-    }
-
-    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
-      setError("Enter an amount greater than zero.");
-      return;
-    }
-
-    if (!date) {
-      setError("Please select a date.");
-      return;
-    }
-
-    setError("");
-
-    try {
-      await onSave({
-        ...(initial || {}),
-        source: source.trim(),
-        amount: Number(amount),
-        date,
-        freq,
-        description: description.trim(),
-      });
-    } catch (err) {
-      setError(err.message || "Unable to save this income.");
-    }
-  }
-
-  return (
-    <div className="inc-modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="inc-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="inc-modal-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <div className="inc-modal-heading">
-          <div>
-            <h3 id="inc-modal-title">
-              {initial ? "Edit Income" : "Add Income"}
-            </h3>
-            <p>Record an income transaction</p>
-          </div>
-          <button
-            type="button"
-            className="inc-icon-button"
-            onClick={onClose}
-            disabled={saving}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form className="inc-form" onSubmit={submit}>
-          {error && <div className="inc-error">{error}</div>}
-
-          <label>
-            Income Source
-            <select
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-            >
-              {SOURCES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Amount (₹)
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="e.g. 8000"
-              required
-            />
-          </label>
-
-          <label>
-            Date
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
-            />
-          </label>
-
-          <label>
-            Frequency
-            <select
-              value={freq}
-              onChange={(event) => setFreq(event.target.value)}
-            >
-              {FREQUENCIES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Description <span className="inc-optional">(optional)</span>
-            <textarea
-              rows={3}
-              maxLength={255}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Add a note about this income"
-            />
-          </label>
-
-          <div className="inc-modal-actions">
-            <button
-              type="button"
-              className="inc-secondary-button"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="inc-primary-button"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <RefreshCw size={15} className="inc-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={15} />
-                  {initial ? "Save Changes" : "Add Income"}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+function shiftMonth(key, delta) {
+  const d = parseISODate(`${key}-01`);
+  d.setMonth(d.getMonth() + delta);
+  return monthKey(toISODate(d));
 }
 
-function StatCard({ label, value, badge, sub, positive, icon: Icon, action, onAction }) {
-  return (
-    <div className="inc-stat-card">
-      <div className="inc-stat-top">
-        <p>{label}</p>
-        <span className={`inc-stat-badge ${positive ? "positive" : "negative"}`}>
-          {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-          {badge}
-        </span>
-      </div>
-
-      <div className="inc-stat-value">{money(value)}</div>
-      <p className="inc-stat-sub">{sub}</p>
-
-      {action && (
-        <button type="button" className="inc-text-link" onClick={onAction}>
-          {action} <ChevronRight size={13} />
-        </button>
-      )}
-
-      <div className="inc-stat-icon">
-        <Icon size={19} />
-      </div>
-    </div>
-  );
+// Months covered by the breakdown toggle (Monthly / Quarterly / Yearly)
+function periodMonths(selectedMonth, period) {
+  if (period === "Monthly") return [selectedMonth];
+  if (period === "Quarterly") return [0, -1, -2].map((d) => shiftMonth(selectedMonth, d));
+  return Array.from({ length: 12 }, (_, i) => `${selectedMonth.slice(0, 4)}-${String(i + 1).padStart(2, "0")}`);
 }
 
-function Panel({ children, className = "" }) {
-  return <section className={`inc-panel ${className}`}>{children}</section>;
-}
-
-export default function Income() {
-  const [incomeList, setIncomeList] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+// ── Income ─────────────────────────────────────────────────────────
+export default function IncomeScreen() {
+  const { user } = useAuth();
+  const { incomeList, expenses: allExpenses, selectedMonth, saveIncome, deleteIncome } = useFinance();
+  const { monthlyTrend } = useAnalytics();
+  const navigate = useScreenNavigate();
+  const role = user?.role ?? "student";
+  const expenses = allExpenses.filter((e) => e.status !== "Cancelled");
   const [modal, setModal] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [breakdownPeriod, setBreakdownPeriod] = useState("Monthly");
   const [showAllActivity, setShowAllActivity] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    const results = await Promise.allSettled([
-      api.getIncome(),
-      api.getExpenses(),
-    ]);
-
-    const incomeResult = results[0];
-    const expenseResult = results[1];
-
-    if (incomeResult.status === "fulfilled") {
-      setIncomeList(
-        Array.isArray(incomeResult.value)
-          ? incomeResult.value.map(normalizeIncome)
-          : []
-      );
-    } else {
-      setError(incomeResult.reason?.message || "Unable to load income.");
-    }
-
-    if (expenseResult.status === "fulfilled") {
-      const rows = Array.isArray(expenseResult.value)
-        ? expenseResult.value
-        : [];
-
-      setExpenses(
-        rows.map((item) => ({
-          id: item.id,
-          desc: item.title || item.description || item.desc || "Expense",
-          cat: item.category || item.cat || "Other",
-          amount: Number(item.amount) || 0,
-          date: isoDate(item.date),
-        }))
-      );
-    } else {
-      setExpenses([]);
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const saveIncome = async (item) => {
-    setSaving(true);
-    setError("");
-    setNotice("");
-
-    try {
-      const payload = toPayload(item);
-      let result;
-
-      if (item.id) {
-        result = await api.updateIncome(item.id, payload);
-        setIncomeList((previous) =>
-          previous.map((record) =>
-            record.id === item.id ? normalizeIncome(result) : record
-          )
-        );
-        setNotice("Income updated successfully.");
-      } else {
-        result = await api.createIncome(payload);
-        setIncomeList((previous) => [
-          normalizeIncome(result),
-          ...previous,
-        ]);
-        setNotice("Income added successfully.");
-      }
-
-      setModal(null);
-    } catch (err) {
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const deleteIncome = async (item) => {
-    if (!window.confirm(`Delete income "${item.source}"?`)) return;
-
-    setError("");
-    setNotice("");
-
-    try {
-      await api.deleteIncome(item.id);
-      setIncomeList((previous) =>
-        previous.filter((record) => record.id !== item.id)
-      );
-      setNotice("Income deleted successfully.");
-    } catch (err) {
-      setError(err.message || "Unable to delete income.");
-    }
-  };
-
-  const totalIncome = useMemo(
-    () => incomeList.reduce((sum, item) => sum + item.amount, 0),
-    [incomeList]
-  );
-
-  const totalExpense = useMemo(
-    () => expenses.reduce((sum, item) => sum + item.amount, 0),
-    [expenses]
-  );
-
+  // Stat cards: the month chosen in the header calendar vs the month before
+  const inMonth = (list, key) => list.filter((x) => monthKey(x.dateIso) === key);
+  const prevMonth = shiftMonth(selectedMonth, -1);
+  const totalIncome = sum(inMonth(incomeList, selectedMonth));
+  const totalExpense = sum(inMonth(expenses, selectedMonth));
   const netCashFlow = totalIncome - totalExpense;
-
-  const freelanceAmount = incomeList
-    .filter((item) => item.source.toLowerCase() === "freelance")
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  const now = new Date();
-  const thisMonth = monthKey(now);
-  const thisQuarter = Math.floor(now.getMonth() / 3);
-  const thisYear = now.getFullYear();
-
-  const filteredExpenses = useMemo(
-    () =>
-      expenses.filter((item) => {
-        const date = new Date(`${item.date}T00:00:00`);
-
-        if (breakdownPeriod === "Monthly") {
-          return monthKey(date) === thisMonth;
-        }
-        if (breakdownPeriod === "Quarterly") {
-          return (
-            date.getFullYear() === thisYear &&
-            Math.floor(date.getMonth() / 3) === thisQuarter
-          );
-        }
-        return date.getFullYear() === thisYear;
-      }),
-    [expenses, breakdownPeriod, thisMonth, thisQuarter, thisYear]
-  );
-
-  const breakdownData = useMemo(() => {
-    const totals = {};
-
-    filteredExpenses.forEach((item) => {
-      totals[item.cat] = (totals[item.cat] || 0) + item.amount;
-    });
-
-    return Object.entries(totals).map(([name, value], index) => ({
-      name,
-      value,
-      color: COLORS[index % COLORS.length],
-    }));
-  }, [filteredExpenses]);
-
-  const chartData = useMemo(() => {
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - 6 + index, 1);
-      const key = monthKey(date);
-
-      const income = incomeList
-        .filter((item) => item.date.startsWith(key))
-        .reduce((sum, item) => sum + item.amount, 0);
-
-      const expense = expenses
-        .filter((item) => item.date.startsWith(key))
-        .reduce((sum, item) => sum + item.amount, 0);
-
-      return {
-        month: date.toLocaleDateString("en-IN", { month: "short" }),
-        income,
-        expenses: expense,
-      };
-    });
-  }, [incomeList, expenses, thisMonth]);
-
-  const allActivity = useMemo(
-    () =>
-      [
-        ...incomeList.map((item) => ({
-          id: `inc-${item.id}`,
-          label: item.source,
-          date: item.date,
-          type: "income",
-          amount: item.amount,
-        })),
-        ...expenses.map((item) => ({
-          id: `exp-${item.id}`,
-          label: item.desc,
-          date: item.date,
-          type: "expense",
-          amount: item.amount,
-        })),
-      ].sort((a, b) => b.date.localeCompare(a.date)),
-    [incomeList, expenses]
-  );
-
-  const upcoming = incomeList
-    .filter((item) => item.freq === "Monthly")
+  const freelanceAmt = sum(inMonth(incomeList, selectedMonth).filter((i) => i.source === "Freelance"));
+  const incomeChange = pctChange(totalIncome, sum(inMonth(incomeList, prevMonth)));
+  const expenseChange = pctChange(totalExpense, sum(inMonth(expenses, prevMonth)));
+  const fmtPct = (v) => (v === null ? "New" : `${v > 0 ? "+" : ""}${v}%`);
+  const monthLabel = formatMonthLabel(selectedMonth, "short");
+  const allActivity = [
+    ...incomeList.map((i) => ({
+      id: `inc-${i.id}`,
+      label: i.source,
+      sub: i.date,
+      dateIso: i.dateIso,
+      type: "income",
+      amount: i.amount,
+    })),
+    ...expenses.map((e) => ({
+      id: `exp-${e.id}`,
+      label: e.desc,
+      sub: e.date,
+      dateIso: e.dateIso,
+      type: "expense",
+      amount: e.amount,
+    })),
+  ].sort((a, b) => b.dateIso.localeCompare(a.dateIso));
+  const recentActivity = allActivity.slice(0, 5);
+  const breakdownMonths = periodMonths(selectedMonth, breakdownPeriod);
+  const catTotals = expenses.filter((e) => breakdownMonths.includes(monthKey(e.dateIso))).reduce((acc, e) => {
+    acc[e.cat] = (acc[e.cat] ?? 0) + e.amount;
+    return acc;
+  }, {});
+  const PIE_COLORS = ["#1e3a5f", "#2E93C7", "#5FA7D2", "#8DBEE3", "#b8d4e8", "#ddeaf5"];
+  const breakdownData = Object.entries(catTotals).map(([name, value], i) => ({
+    name,
+    value,
+    color: PIE_COLORS[i % PIE_COLORS.length],
+  }));
+  // Upcoming = next expected payment of each monthly / weekly source
+  const upcoming = Object.values(
+    incomeList
+      .filter((i) => i.freq === "Monthly" || i.freq === "Weekly")
+      .reduce((acc, i) => {
+        if (!acc[i.source] || acc[i.source].dateIso < i.dateIso) acc[i.source] = i;
+        return acc;
+      }, {}),
+  )
+    .map((i) => {
+      const next = parseISODate(i.dateIso);
+      const today = toISODate();
+      while (toISODate(next) <= today) {
+        if (i.freq === "Weekly") next.setDate(next.getDate() + 7);
+        else next.setMonth(next.getMonth() + 1);
+      }
+      return { ...i, nextIso: toISODate(next), date: formatDisplayDate(toISODate(next)) };
+    })
+    .sort((a, b) => a.nextIso.localeCompare(b.nextIso))
     .slice(0, 5);
-
-  const exportCSV = () => {
-    const rows = [
-      ["Source", "Amount", "Date", "Frequency", "Description"],
-      ...incomeList.map((item) => [
-        item.source,
-        String(item.amount),
-        item.date,
-        item.freq,
-        item.description || "",
-      ]),
-    ];
-
-    const csv = rows
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
-
-    const url = URL.createObjectURL(
-      new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "BudgetBuddy_Income.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
+  const statCards = [
+    {
+      label: "Total Revenue",
+      value: totalIncome,
+      positive: incomeChange === null || incomeChange >= 0,
+      badge: fmtPct(incomeChange),
+      sub: `${monthLabel} · all sources`,
+      action: "",
+      dest: "reports",
+    },
+    {
+      label: "Total Expenses",
+      value: totalExpense,
+      positive: expenseChange !== null && expenseChange <= 0,
+      badge: fmtPct(expenseChange),
+      sub: `${monthLabel}`,
+      action: "Review Expenses",
+      dest: "expenses",
+    },
+    {
+      label: "Net Cash Flow",
+      value: netCashFlow,
+      positive: netCashFlow >= 0,
+      badge: netCashFlow >= 0 ? "Surplus" : "Deficit",
+      sub: "Income − Expenses",
+      action: "See Reports",
+      dest: "reports",
+    },
+    {
+      label: "Freelance",
+      value: freelanceAmt,
+      positive: true,
+      badge: "One-time",
+      sub: `Freelance earnings · ${monthLabel}`,
+      action: "View Analytics",
+      dest: "analytics",
+    },
+  ];
   return (
-    <div className="income-screen">
-      {modal && (
-        <IncomeModal
-          initial={modal === "add" ? null : modal}
-          onSave={saveIncome}
-          onClose={() => !saving && setModal(null)}
-          saving={saving}
+    <div className="space-y-5">
+      {confirmDelete && (
+        <ConfirmDialog
+          icon={Trash2}
+          danger
+          title="Delete Income"
+          sub={`${confirmDelete.source} · ₹${confirmDelete.amount.toLocaleString()} · ${confirmDelete.date}`}
+          body="This income entry will be permanently removed."
+          confirmLabel="Delete"
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            deleteIncome(confirmDelete.id).catch(() => {});
+            setConfirmDelete(null);
+          }}
         />
       )}
-
+      {modal && (
+        <IncomeModal
+          initial={modal === "add" ? undefined : modal}
+          onSave={saveIncome}
+          onClose={() => setModal(null)}
+        />
+      )}
       {showAllActivity && (
-        <div className="inc-modal-backdrop" onMouseDown={() => setShowAllActivity(false)}>
-          <div
-            className="inc-modal inc-activity-modal"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="inc-modal-heading">
-              <div>
-                <h3>All Activity</h3>
-                <p>Income and expense transactions</p>
-              </div>
-              <button
-                className="inc-icon-button"
-                onClick={() => setShowAllActivity(false)}
-                aria-label="Close activity"
+        <Modal title="All Activity" onClose={() => setShowAllActivity(false)}>
+          <div className="space-y-0 max-h-[60vh] overflow-y-auto pr-1">
+            {allActivity.map((a, idx) => (
+              <div
+                key={a.id}
+                className={`flex items-center gap-3 py-2.5 ${idx < allActivity.length - 1 ? "border-b border-border/60" : ""}`}
               >
-                <X size={18} />
-              </button>
-            </div>
-            <ActivityList activity={allActivity} />
+                <div
+                  className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${a.type === "income" ? "bg-primary/10" : "bg-muted"}`}
+                >
+                  {a.type === "income" ? (
+                    <TrendingUp size={13} className="text-primary" />
+                  ) : (
+                    <CreditCard size={13} className="text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{a.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{a.sub}</p>
+                </div>
+                <span
+                  className={`text-xs font-semibold shrink-0 ${a.type === "income" ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  {a.type === "income" ? "+" : "−"}₹{a.amount.toLocaleString()}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        </Modal>
       )}
 
-      <header className="inc-page-header">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1>Income Management</h1>
-          <p>Track your revenue, cash flow and income sources</p>
+          <h2 className="text-2xl font-bold font-['Poppins'] text-foreground">Income Management</h2>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Track your revenue, cash flow and income sources
+          </p>
         </div>
-
-        <div className="inc-header-actions">
-          <button className="inc-export-button" onClick={exportCSV}>
+        <div className="flex items-center gap-2">
+          <LockedBtn
+            role={role}
+            feature="export_csv"
+            onClick={() =>
+              downloadCSV(
+                [["Source", "Amount", "Date", "Frequency"], ...incomeList.map((i) => [i.source, i.amount, i.dateIso, i.freq])],
+                "income.csv",
+              )
+            }
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-border text-foreground hover:bg-secondary transition"
+            style={{}}
+          >
             <Download size={15} /> Export CSV
-          </button>
-          <button className="inc-primary-button" onClick={() => setModal("add")}>
+          </LockedBtn>
+          <button
+            onClick={() => setModal("add")}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition hover:opacity-90"
+            style={{
+              background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+            }}
+          >
             <Plus size={16} /> Add Income
           </button>
         </div>
-      </header>
+      </div>
 
-      {error && (
-        <div className="inc-banner inc-banner-error" role="alert">
-          <span>{error}</span>
-          <button onClick={loadData}>
-            <RefreshCw size={14} /> Retry
-          </button>
-          <button aria-label="Dismiss error" onClick={() => setError("")}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="inc-banner inc-banner-success" role="status">
-          <CheckCircle size={15} />
-          <span>{notice}</span>
-          <button aria-label="Dismiss message" onClick={() => setNotice("")}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="inc-loading">
-          <RefreshCw size={22} className="inc-spin" />
-          Loading your financial data...
-        </div>
-      ) : (
-        <>
-          <div className="inc-stat-grid">
-            <StatCard
-              label="Total Revenue"
-              value={totalIncome}
-              positive
-              badge="Income"
-              sub="All recorded sources"
-              icon={TrendingUp}
-            />
-            <StatCard
-              label="Total Expenses"
-              value={totalExpense}
-              positive={false}
-              badge="Expenses"
-              sub="Recorded transactions"
-              icon={CreditCard}
-              action="Review Expenses"
-              onAction={() => window.location.assign("/expenses")}
-            />
-            <StatCard
-              label="Net Cash Flow"
-              value={netCashFlow}
-              positive={netCashFlow >= 0}
-              badge={netCashFlow >= 0 ? "Surplus" : "Deficit"}
-              sub="Income − Expenses"
-              icon={Wallet}
-            />
-            <StatCard
-              label="Freelance"
-              value={freelanceAmount}
-              positive
-              badge="Earnings"
-              sub="Freelance income"
-              icon={BarChart2}
-            />
-          </div>
-
-          <div className="inc-main-grid">
-            <Panel className="inc-cashflow-panel">
-              <div className="inc-panel-heading">
-                <div>
-                  <h2>Cash Flow Analysis</h2>
-                  <p>Income and expenses over the last seven months</p>
-                </div>
-                <div className="inc-chart-legend">
-                  <span><i className="inc-legend-income" /> Income</span>
-                  <span><i className="inc-legend-expense" /> Expenses</span>
-                </div>
-              </div>
-
-              <div className="inc-cashflow-chart">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="inc-income-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2E93C7" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#2E93C7" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="inc-expense-gradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      width={54}
-                      tick={{ fontSize: 10, fill: "#94a3b8" }}
-                      tickFormatter={(value) => value >= 1000 ? `₹${Math.round(value / 1000)}k` : `₹${value}`}
-                    />
-                    <Tooltip
-                      contentStyle={{ border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12 }}
-                      formatter={(value, name) => [money(value), name === "income" ? "Income" : "Expenses"]}
-                    />
-                    <Area type="monotone" dataKey="income" stroke="#2E93C7" strokeWidth={2.5} fill="url(#inc-income-gradient)" dot={false} />
-                    <Area type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={2.5} fill="url(#inc-expense-gradient)" dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Panel>
-
-            <Panel className="inc-activity-panel">
-              <div className="inc-panel-heading">
-                <h2>Recent Activity</h2>
-                <button className="inc-text-link" onClick={() => setShowAllActivity(true)}>
-                  Show All <ChevronRight size={13} />
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className="p-4 border border-border flex flex-col">
+            <div className="flex items-start justify-between mb-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
+                {s.label}
+              </p>
+              <span
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ml-1 ${s.positive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}
+              >
+                {s.badge}
+              </span>
+            </div>
+            <p className="text-2xl font-bold font-['Poppins'] text-foreground leading-none">
+              ₹{Math.abs(s.value).toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
+            {s.action && (
+              <div className="mt-auto pt-3 border-t border-border/60">
+                <button
+                  onClick={() => navigate(s.dest)}
+                  className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                >
+                  {s.action} <ChevronRight size={12} />
                 </button>
               </div>
-              <ActivityList activity={allActivity.slice(0, 5)} />
-            </Panel>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* Cash Flow Analysis + Recent Activity */}
+      <div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch"
+        style={{
+          gridAutoRows: "320px",
+        }}
+      >
+        <Card className="p-5 border border-border lg:col-span-2 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Cash Flow Analysis</h3>
+            <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 inline-block bg-[#2E93C7] rounded" />
+                Income
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 inline-block bg-[#f59e0b] rounded" />
+                Expenses
+              </span>
+            </div>
           </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={monthlyTrend}
+                margin={{
+                  top: 8,
+                  right: 8,
+                  left: 8,
+                  bottom: 0,
+                }}
+              >
+                <defs>
+                  <linearGradient id="cf-income-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2E93C7" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#2E93C7" stopOpacity={0.03} />
+                  </linearGradient>
+                  <linearGradient id="cf-expense-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="month"
+                  tick={{
+                    fontSize: 11,
+                    fill: "#94a3b8",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{
+                    fontSize: 11,
+                    fill: "#94a3b8",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                  width={48}
+                />
+                <Tooltip
+                  contentStyle={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={(v, name) => [`₹${v.toLocaleString()}`, name]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  stroke="#2E93C7"
+                  strokeWidth={2.5}
+                  fill="url(#cf-income-grad)"
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                  }}
+                  name="Income"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expenses"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  fill="url(#cf-expense-grad)"
+                  fillOpacity={0.6}
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                  }}
+                  name="Expenses"
+                  strokeDasharray="0"
+                  style={{
+                    isolation: "isolate",
+                  }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
 
-          <div className="inc-bottom-grid">
-            <Panel>
-              <div className="inc-panel-heading">
-                <h2>Expense Breakdown</h2>
-                <span className="inc-muted-icon"><BarChart2 size={16} /></span>
+        <Card className="p-5 border border-border flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
+            <button
+              onClick={() => setShowAllActivity(true)}
+              className="flex items-center gap-0.5 text-xs text-primary font-medium hover:underline"
+            >
+              Show All <ChevronRight size={12} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {recentActivity.map((a, idx) => (
+              <div
+                key={a.id}
+                className={`flex items-center gap-3 py-2.5 ${idx < recentActivity.length - 1 ? "border-b border-border/60" : ""}`}
+              >
+                {/* Type icon badge */}
+                <div
+                  className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${a.type === "income" ? "bg-primary/10" : "bg-muted"}`}
+                >
+                  {a.type === "income" ? (
+                    <TrendingUp size={13} className="text-primary" />
+                  ) : (
+                    <CreditCard size={13} className="text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{a.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{a.sub}</p>
+                </div>
+                <span
+                  className={`text-xs font-semibold shrink-0 ${a.type === "income" ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  {a.type === "income" ? "+" : "−"}₹{a.amount.toLocaleString()}
+                </span>
               </div>
+            ))}
+          </div>
+        </Card>
+      </div>
 
-              <div className="inc-period-tabs">
-                {["Monthly", "Quarterly", "Yearly"].map((period) => (
-                  <button
-                    key={period}
-                    className={breakdownPeriod === period ? "active" : ""}
-                    onClick={() => setBreakdownPeriod(period)}
-                  >
-                    {period}
-                  </button>
+      {/* Bottom row: Breakdown + Sources + Upcoming */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Expense Breakdown */}
+        <Card className="p-5 border border-border">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Expense Breakdown</h3>
+            <button
+              onClick={() => navigate("reports")}
+              className="flex items-center gap-0.5 text-xs text-primary font-medium hover:underline"
+            >
+              View Report <ChevronRight size={12} />
+            </button>
+          </div>
+          <div className="flex rounded-lg border border-border overflow-hidden text-[10px] mb-3 w-fit">
+            {["Monthly", "Quarterly", "Yearly"].map((p) => (
+              <button
+                key={p}
+                onClick={() => setBreakdownPeriod(p)}
+                className={`px-3 py-1.5 font-medium transition-colors ${breakdownPeriod === p ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <ResponsiveContainer width="100%" height={150}>
+            <PieChart>
+              <Pie
+                data={breakdownData}
+                cx="50%"
+                cy="50%"
+                innerRadius={38}
+                outerRadius={65}
+                paddingAngle={2}
+                dataKey="value"
+                strokeWidth={0}
+              >
+                {breakdownData.map((d, i) => (
+                  <Cell key={`breakdown-${i}`} fill={d.color} />
                 ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+                formatter={(v) => [`₹${v.toLocaleString()}`, ""]}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="space-y-2 mt-1">
+            {breakdownData.slice(0, 4).map((d) => (
+              <div key={d.name} className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-sm shrink-0"
+                  style={{
+                    background: d.color,
+                  }}
+                />
+                <span className="text-xs text-muted-foreground flex-1 truncate">{d.name}</span>
+                <span className="text-xs font-semibold text-foreground">₹{d.value.toLocaleString()}</span>
               </div>
+            ))}
+          </div>
+        </Card>
 
-              {breakdownData.length ? (
-                <>
-                  <div className="inc-pie-chart">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={breakdownData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={43}
-                          outerRadius={70}
-                          paddingAngle={2}
-                          strokeWidth={0}
-                        >
-                          {breakdownData.map((item) => (
-                            <Cell key={item.name} fill={item.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [money(value), "Amount"]} />
-                      </PieChart>
-                    </ResponsiveContainer>
+        {/* Income Sources */}
+        <Card className="p-5 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Income Sources</h3>
+            <button
+              onClick={() => setModal("add")}
+              className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+            >
+              <Plus size={12} /> Add
+            </button>
+          </div>
+          <div className="space-y-0">
+            {incomeList.slice(0, 5).map((i, idx) => (
+              <div
+                key={i.id}
+                className={`flex items-center justify-between py-2.5 ${idx < Math.min(incomeList.length, 5) - 1 ? "border-b border-border/60" : ""}`}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{i.source}</p>
+                  <p className="text-[10px] text-muted-foreground">{i.date}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className="text-sm font-semibold text-foreground">₹{i.amount.toLocaleString()}</span>
+                  <button
+                    onClick={() => setModal(i)}
+                    className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <LockedBtn
+                    role={role}
+                    feature="delete_income"
+                    onClick={() => setConfirmDelete(i)}
+                    className="p-1 rounded text-muted-foreground hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={12} />
+                  </LockedBtn>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Upcoming / Recurring */}
+        <Card className="p-5 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Upcoming Income</h3>
+            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+              Recurring
+            </span>
+          </div>
+          <div className="space-y-0">
+            {upcoming.length > 0 ? (
+              upcoming.map((i, idx) => (
+                <div
+                  key={i.id}
+                  className={`flex items-center justify-between py-2.5 ${idx < upcoming.length - 1 ? "border-b border-border/60" : ""}`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{i.source}</p>
+                    <p className="text-[10px] text-muted-foreground">{i.date}</p>
                   </div>
-                  <div className="inc-breakdown-list">
-                    {breakdownData.slice(0, 5).map((item) => (
-                      <div className="inc-breakdown-row" key={item.name}>
-                        <span className="inc-breakdown-dot" style={{ background: item.color }} />
-                        <span className="inc-breakdown-name">{item.name}</span>
-                        <strong>{money(item.value)}</strong>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="inc-empty-small">No expenses for this period.</div>
-              )}
-            </Panel>
-
-            <Panel>
-              <div className="inc-panel-heading">
-                <h2>Income Sources</h2>
-                <button className="inc-text-link" onClick={() => setModal("add")}>
-                  <Plus size={13} /> Add
-                </button>
-              </div>
-
-              {incomeList.length ? (
-                <div className="inc-source-list">
-                  {incomeList.slice(0, 5).map((item) => (
-                    <div className="inc-source-row" key={item.id}>
-                      <div className="inc-source-avatar">
-                        {item.source.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div className="inc-source-info">
-                        <strong>{item.source}</strong>
-                        <span>{displayDate(item.date)}</span>
-                      </div>
-                      <div className="inc-source-amount">
-                        <strong>{money(item.amount)}</strong>
-                        <button
-                          onClick={() => setModal(item)}
-                          aria-label={`Edit ${item.source}`}
-                          title="Edit income"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteIncome(item)}
-                          aria-label={`Delete ${item.source}`}
-                          title="Delete income"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                  <span className="text-sm font-semibold text-foreground shrink-0 ml-3">
+                    ₹{i.amount.toLocaleString()}
+                  </span>
                 </div>
-              ) : (
-                <div className="inc-empty-small">
-                  No income records yet. Add your first income.
-                </div>
-              )}
-            </Panel>
-
-            <Panel>
-              <div className="inc-panel-heading">
-                <h2>Upcoming Income</h2>
-                <CalendarDays size={17} className="inc-heading-icon" />
-              </div>
-              <p className="inc-panel-subtitle">Recurring monthly income sources</p>
-
-              {upcoming.length ? (
-                <div className="inc-upcoming-list">
-                  {upcoming.map((item) => (
-                    <div className="inc-upcoming-row" key={item.id}>
-                      <div className="inc-upcoming-icon"><CalendarDays size={15} /></div>
-                      <div className="inc-upcoming-info">
-                        <strong>{item.source}</strong>
-                        <span>{item.freq} · {displayDate(item.date)}</span>
-                      </div>
-                      <strong className="inc-upcoming-amount">{money(item.amount)}</strong>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="inc-empty-small">
-                  No monthly income sources yet.
-                </div>
-              )}
-            </Panel>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-6">No recurring income set</p>
+            )}
           </div>
-
-          {/* <Panel className="inc-monthly-panel">
-            <div className="inc-panel-heading">
-              <div>
-                <h2>Monthly Income vs Expenses</h2>
-                <p>Comparison based on your saved transactions</p>
-              </div>
-            </div>
-            <div className="inc-monthly-chart">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} barCategoryGap="35%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E4EFF7" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#5FA7D2" }} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} tick={{ fontSize: 10, fill: "#5FA7D2" }} />
-                  <Tooltip formatter={(value) => [money(value), ""]} />
-                  <Legend iconType="circle" iconSize={8} />
-                  <Bar dataKey="income" fill="#2E93C7" radius={[4, 4, 0, 0]} name="Income" />
-                  <Bar dataKey="expenses" fill="#8DBEE3" radius={[4, 4, 0, 0]} name="Expenses" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Panel> */}
-        </>
-      )}
-    </div>
-  );
-}
-
-function ActivityList({ activity }) {
-  if (!activity.length) {
-    return <div className="inc-empty-small">No recent activity.</div>;
-  }
-
-  return (
-    <div className="inc-activity-list">
-      {activity.map((item) => (
-        <div className="inc-activity-row" key={item.id}>
-          <div className={`inc-activity-icon ${item.type}`}>
-            {item.type === "income" ? <TrendingUp size={14} /> : <CreditCard size={14} />}
-          </div>
-          <div className="inc-activity-info">
-            <strong>{item.label}</strong>
-            <span>{displayDate(item.date)}</span>
-          </div>
-          <strong className={`inc-activity-amount ${item.type}`}>
-            {item.type === "income" ? "+" : "−"}{money(item.amount)}
-          </strong>
-        </div>
-      ))}
+        </Card>
+      </div>
     </div>
   );
 }
