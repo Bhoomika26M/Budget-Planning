@@ -21,7 +21,7 @@ const portals = [
   { id: "admin", label: "Admin" },
 ];
 
-export default function AuthPage() {
+export default function AuthPage({ onAuthenticated }) {
   const { login, register, sessionError } = useAuth();
   const [portal, setPortal] = useState("student");
   const [registering, setRegistering] = useState(false);
@@ -43,7 +43,8 @@ export default function AuthPage() {
         setRegistering(false);
         setNotice("Account created. Sign in with your new credentials.");
       } else {
-        await login(form.email.trim(), form.password, portal);
+        const user = await login(form.email.trim(), form.password, portal);
+        onAuthenticated?.(user);
       }
     } catch (err) {
       setError(err.message || "Authentication failed. Please try again.");
