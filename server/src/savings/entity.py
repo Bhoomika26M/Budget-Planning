@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Float, Date, DateTime, ForeignKey
 from sqlalchemy.sql import func
 
 from src.database.core import Base
@@ -16,6 +16,8 @@ class SavingsGoal(Base):
     deadline = Column(Date, nullable=True)
     color = Column(String(30), nullable=True, default="#4169e1")
     note = Column(String(500), nullable=True)
+    emoji = Column(String(16), nullable=True, default="🎯")
+    completed = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

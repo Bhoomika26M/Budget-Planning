@@ -1,0 +1,7 @@
+__pycache__
+*.pyc
+budgetbuddy.db
+.env
+.venv
+venv
+tests

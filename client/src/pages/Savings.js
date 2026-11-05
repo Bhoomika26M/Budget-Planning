@@ -1,1517 +1,624 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { motion } from "motion/react";
 import {
-  Plus, Target, PiggyBank, BarChart2, Edit2, Trash2, CalendarDays,
-  TrendingUp, ChevronRight, X, AlertTriangle, CheckCircle2, ArrowUpRight,
-  LockKeyhole, Trophy, Wallet
+  BarChart2,
+  CalendarDays,
+  CheckCircle,
+  ChevronRight,
+  Edit2,
+  PiggyBank,
+  Plus,
+  Target,
+  Trash2,
+  TrendingUp,
 } from "lucide-react";
-import {
-  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis
-} from "recharts";
-import { api } from "../services/api";
-import "./Savings.css";
-
-const BLUE = "#2E93C7";
-const DEEP_BLUE = "#0D6D91";
-const COLORS = ["#2E93C7", "#0D6D91", "#5FA7D2", "#22c55e", "#f59e0b", "#8b5cf6", "#e53e3e", "#ec4899"];
-const EMOJIS = ["🎯", "💻", "✈️", "🛡️", "🏖️", "🎓", "🚗", "🏠", "📱", "💰"];
-
-const money = (n) =>
-  `₹${Number(n || 0).toLocaleString("en-IN", {
-    maximumFractionDigits: 2
-  })}`;
-
-const clamp = (n, min = 0, max = 100) =>
-  Math.min(max, Math.max(min, n));
-
-const asNumber = (v) =>
-  Number.isFinite(Number(v)) ? Number(v) : 0;
-
-function normalizeGoal(item) {
-  return {
-    ...item,
-    id: item.id ?? item.goal_id,
-    title: item.title ?? item.name ?? item.goal_name ?? "Savings goal",
-    emoji: item.emoji ?? "🎯",
-    target: asNumber(
-      item.target ?? item.target_amount ?? item.goal_amount
-    ),
-    saved: asNumber(
-      item.saved ??
-      item.saved_amount ??
-      item.current_amount ??
-      item.current_saved
-    ),
-    deadline:
-      item.deadline ?? item.target_date ?? item.due_date ?? "",
-    quote:
-      item.quote ??
-      item.note ??
-      "Every small step brings you closer.",
-    color: item.color ?? BLUE
-  };
-}
-
-function normalizeContribution(item, goal) {
-  return {
-    ...item,
-    id:
-      item.id ??
-      item.contribution_id ??
-      `${item.goal_id}-${item.created_at}-${item.amount}`,
-    goalId: item.goal_id ?? item.goalId ?? goal?.id,
-    goalTitle:
-      item.goal_title ??
-      item.goalTitle ??
-      goal?.title ??
-      "Savings goal",
-    goalEmoji:
-      item.goal_emoji ??
-      item.goalEmoji ??
-      goal?.emoji ??
-      "🎯",
-    amount: asNumber(
-      item.amount ?? item.contribution_amount
-    ),
-    dateIso:
-      item.date ??
-      item.created_at ??
-      item.contributed_at ??
-      ""
-  };
-}
-
-function formatContributionDate(value) {
-  if (!value) return "Recently";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) {
-    return String(value);
-  }
-
-  const today = new Date();
-  const sameDay = d.toDateString() === today.toDateString();
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  const time = d.toLocaleTimeString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit"
-  });
-
-  if (sameDay) return `Today • ${time}`;
-
-  if (d.toDateString() === yesterday.toDateString()) {
-    return `Yesterday • ${time}`;
-  }
-
-  return `${d.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short"
-  })} • ${time}`;
-}
-
-function isOverdue(deadline) {
-  if (!deadline) return false;
-
-  const parsed = new Date(deadline);
-
-  if (!Number.isNaN(parsed.getTime())) {
-    return parsed.getTime() < Date.now();
-  }
-
-  const m = String(deadline).match(/^([A-Za-z]{3})\s+(\d{4})$/);
-
-  if (!m) return false;
-
-  const months = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3,
-    May: 4, Jun: 5, Jul: 6, Aug: 7,
-    Sep: 8, Oct: 9, Nov: 10, Dec: 11
-  };
-
-  if (months[m[1]] === undefined) return false;
-
-  return new Date(
-    Number(m[2]),
-    months[m[1]] + 1,
-    0,
-    23,
-    59,
-    59
-  ) < new Date();
-}
-
-function daysLeft(deadline) {
-  if (!deadline) return null;
-
-  const m = String(deadline).match(/^([A-Za-z]{3})\s+(\d{4})$/);
-
-  const months = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3,
-    May: 4, Jun: 5, Jul: 6, Aug: 7,
-    Sep: 8, Oct: 9, Nov: 10, Dec: 11
-  };
-
-  let due;
-
-  if (m && months[m[1]] !== undefined) {
-    due = new Date(
-      Number(m[2]),
-      months[m[1]] + 1,
-      0,
-      23,
-      59,
-      59
-    );
-  } else {
-    due = new Date(deadline);
-  }
-
-  if (Number.isNaN(due.getTime())) return null;
-
-  return Math.ceil(
-    (due.getTime() - Date.now()) / 86400000
-  );
-}
-
-function Modal({ title, onClose, children, wide = false }) {
-  return (
-    <div
-      className="sav-modal-backdrop"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <section
-        className={`sav-modal${wide ? " sav-modal-wide" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <header className="sav-modal-header">
-          <div>
-            <h2>{title}</h2>
-            <p>Make your next money milestone happen.</p>
-          </div>
-
-          <button
-            type="button"
-            className="sav-icon-button"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </header>
-
-        {children}
-      </section>
-    </div>
-  );
-}
-
-function GoalModal({ initial, onClose, onSave, saving }) {
-  const [title, setTitle] = useState(initial?.title || "");
-  const [emoji, setEmoji] = useState(initial?.emoji || "🎯");
-  const [target, setTarget] = useState(
-    initial ? String(initial.target) : ""
-  );
-  const [saved, setSaved] = useState(
-    initial ? String(initial.saved) : "0"
-  );
-  const [deadline, setDeadline] = useState(
-    initial?.deadline || ""
-  );
-  const [quote, setQuote] = useState(
-    initial?.quote || ""
-  );
-  const [color, setColor] = useState(
-    initial?.color || BLUE
-  );
-  const [error, setError] = useState("");
-
-  async function submit(e) {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      return setError("Please enter a goal name.");
-    }
-
-    if (asNumber(target) <= 0) {
-      return setError(
-        "Target amount must be greater than zero."
-      );
-    }
-
-    if (
-      asNumber(saved) < 0 ||
-      asNumber(saved) > asNumber(target)
-    ) {
-      return setError(
-        "Saved amount must be between zero and the target."
-      );
-    }
-
-    setError("");
-
-    await onSave({
-      ...initial,
-      title: title.trim(),
-      name: title.trim(),
-      emoji,
-      target: asNumber(target),
-      saved: asNumber(saved),
-      deadline,
-      quote: quote.trim() ||
-        "Every small step brings you closer.",
-      color
-    });
-  }
-
-  return (
-    <Modal
-      title={
-        initial
-          ? "Edit savings goal"
-          : "Create a savings goal"
-      }
-      onClose={onClose}
-    >
-      <form className="sav-form" onSubmit={submit}>
-        {error && (
-          <div className="sav-inline-error">
-            <AlertTriangle size={15} />
-            {error}
-          </div>
-        )}
-
-        <div className="sav-form-row">
-          <label className="sav-field sav-emoji-field">
-            <span>Icon</span>
-            <select
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-            >
-              {EMOJIS.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="sav-field sav-grow">
-            <span>Goal name</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Laptop Fund"
-              maxLength={80}
-            />
-          </label>
-        </div>
-
-        <label className="sav-field">
-          <span>Target amount (₹)</span>
-          <input
-            type="number"
-            min="1"
-            step="0.01"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            placeholder="80000"
-            required
-          />
-        </label>
-
-        <label className="sav-field">
-          <span>Already saved (₹)</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={saved}
-            onChange={(e) => setSaved(e.target.value)}
-            placeholder="0"
-          />
-        </label>
-
-        {asNumber(target) > 0 && (
-          <div className="sav-preview">
-            <div>
-              <span>Progress preview</span>
-              <strong>
-                {Math.round(
-                  clamp(
-                    asNumber(saved) /
-                    asNumber(target) * 100
-                  )
-                )}%
-              </strong>
-            </div>
-
-            <div className="sav-progress">
-              <span
-                style={{
-                  width: `${
-                    clamp(
-                      asNumber(saved) /
-                      asNumber(target) * 100
-                    )
-                  }%`,
-                  background: color
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        <label className="sav-field">
-          <span>Target date</span>
-          <input
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            placeholder="e.g. Dec 2026"
-          />
-        </label>
-
-        <label className="sav-field">
-          <span>Motivational note</span>
-          <input
-            value={quote}
-            onChange={(e) => setQuote(e.target.value)}
-            placeholder="A little reminder to keep going"
-            maxLength={140}
-          />
-        </label>
-
-        <div className="sav-field">
-          <span>Goal colour</span>
-
-          <div className="sav-color-options">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-label={`Select ${c}`}
-                className={color === c ? "selected" : ""}
-                style={{ background: c }}
-                onClick={() => setColor(c)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <footer className="sav-modal-actions">
-          <button
-            type="button"
-            className="sav-button sav-button-light"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-
-          <button
-            className="sav-button sav-button-primary"
-            disabled={saving}
-          >
-            {saving
-              ? "Saving…"
-              : initial
-                ? "Save changes"
-                : <><Plus size={16} /> Create goal</>
-            }
-          </button>
-        </footer>
-      </form>
-    </Modal>
-  );
-}
-
-function ContributionModal({
-  goal,
-  onClose,
-  onSave,
-  saving
-}) {
-  const [amount, setAmount] = useState("");
-  const [error, setError] = useState("");
-
-  async function submit(e) {
-    e.preventDefault();
-
-    const value = asNumber(amount);
-
-    if (value <= 0) {
-      return setError(
-        "Enter an amount greater than zero."
-      );
-    }
-
-    setError("");
-    await onSave(value);
-  }
-
-  return (
-    <Modal
-      title={`Add to ${goal.title}`}
-      onClose={onClose}
-    >
-      <form className="sav-form" onSubmit={submit}>
-        <div className="sav-contribute-summary">
-          <span className="sav-goal-emoji">
-            {goal.emoji}
-          </span>
-
-          <div>
-            <strong>{money(goal.saved)} saved</strong>
-            <span>of {money(goal.target)} target</span>
-          </div>
-        </div>
-
-        {error && (
-          <div className="sav-inline-error">
-            <AlertTriangle size={15} />
-            {error}
-          </div>
-        )}
-
-        <label className="sav-field">
-          <span>Contribution amount (₹)</span>
-          <input
-            autoFocus
-            type="number"
-            min="1"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="e.g. 500"
-            required
-          />
-        </label>
-
-        <div className="sav-quick-amounts">
-          {[100, 250, 500, 1000].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setAmount(String(n))}
-            >
-              {money(n)}
-            </button>
-          ))}
-        </div>
-
-        <footer className="sav-modal-actions">
-          <button
-            type="button"
-            className="sav-button sav-button-light"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-
-          <button
-            className="sav-button sav-button-primary"
-            disabled={saving}
-          >
-            {saving
-              ? "Adding…"
-              : <><Plus size={16} /> Add savings</>
-            }
-          </button>
-        </footer>
-      </form>
-    </Modal>
-  );
-}
-
-function ConfirmDelete({
-  goal,
-  onClose,
-  onConfirm,
-  saving
-}) {
-  return (
-    <Modal
-      title="Delete this goal?"
-      onClose={onClose}
-    >
-      <div className="sav-delete-body">
-        <div className="sav-delete-icon">
-          <Trash2 size={22} />
-        </div>
-
-        <p>
-          Are you sure you want to delete{" "}
-          <strong>{goal.title}</strong>? This action cannot
-          be undone.
-        </p>
-
-        <div className="sav-modal-actions">
-          <button
-            className="sav-button sav-button-light"
-            onClick={onClose}
-          >
-            Keep goal
-          </button>
-
-          <button
-            className="sav-button sav-button-danger"
-            disabled={saving}
-            onClick={onConfirm}
-          >
-            {saving ? "Deleting…" : "Delete goal"}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-export default function Savings() {
-  const [goals, setGoals] = useState([]);
-  const [contributions, setContributions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import GoalModal from "../components/Modals/GoalModal";
+import Modal from "../components/Modals/Modal";
+import ExtendDeadlineModal from "../components/Modals/ExtendDeadlineModal";
+import AddSavingsModal from "../components/Modals/AddSavingsModal";
+import GoalSuccessPopup from "../components/Modals/GoalSuccessPopup";
+import Card from "../components/Cards/Card";
+import LockedBtn from "../components/Access/LockedButton";
+import CircleProgress from "../components/Cards/CircleProgress";
+import { useAuth } from "../context/AuthContext";
+import { useFinance } from "../context/FinanceContext";
+import { useAnalytics } from "../context/AnalyticsContext";
+import { daysUntil } from "../utils/formatDate";
+
+// ── Savings ────────────────────────────────────────────────────────
+
+export default function SavingsScreen() {
+  const { user } = useAuth();
+  const { goals, contributions, saveGoal, deleteGoal, contribute } = useFinance();
+  const { savingsGrowth } = useAnalytics({ months: 7 });
+  const role = user?.role ?? "student";
   const [modal, setModal] = useState(null);
-  const [contributeGoal, setContributeGoal] = useState(null);
-  const [deleteGoal, setDeleteGoal] = useState(null);
+  const [addSav, setAddSav] = useState(null);
+  const [successGoal, setSuccessGoal] = useState(null);
   const [sortKey, setSortKey] = useState("deadline");
   const [sortDir, setSortDir] = useState("asc");
-  const [showAll, setShowAll] = useState(false);
-
-  const loadData = useCallback(async () => {
-    setError("");
-
-    try {
-      const result = await api.getSavingsGoals();
-
-      const rawGoals = Array.isArray(result)
-        ? result
-        : (
-            result?.goals ||
-            result?.items ||
-            result?.data ||
-            []
-          );
-
-      const normalized = rawGoals.map(normalizeGoal);
-
-      setGoals(normalized);
-
-      const all = await Promise.all(
-        normalized.map(async (g) => {
-          try {
-            const r =
-              await api.getSavingsContributions(g.id);
-
-            const list = Array.isArray(r)
-              ? r
-              : (
-                  r?.contributions ||
-                  r?.items ||
-                  r?.data ||
-                  []
-                );
-
-            return list.map((c) =>
-              normalizeContribution(c, g)
-            );
-          } catch (_) {
-            return [];
-          }
-        })
-      );
-
-      setContributions(
-        all.flat().sort(
-          (a, b) =>
-            new Date(b.dateIso || 0) -
-            new Date(a.dateIso || 0)
-        )
-      );
-    } catch (e) {
-      setError(
-        e?.message ||
-        "Could not load savings from the server."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const activeGoals = useMemo(() => {
-    const active = goals.filter(
-      (g) => g.saved < g.target
-    );
-
-    const val = (g) => {
-      if (sortKey === "target") return g.target;
-      if (sortKey === "saved") return g.saved;
-
-      if (sortKey === "remaining") {
-        return Math.max(0, g.target - g.saved);
-      }
-
-      if (sortKey === "progress") {
-        return g.target > 0
-          ? g.saved / g.target
-          : 0;
-      }
-
-      const d = daysLeft(g.deadline);
-
-      return d === null
-        ? Number.MAX_SAFE_INTEGER
-        : d;
-    };
-
-    return [...active].sort(
-      (a, b) =>
-        (val(a) - val(b)) *
-        (sortDir === "asc" ? 1 : -1)
-    );
-  }, [goals, sortKey, sortDir]);
-
-  const completedGoals = useMemo(
-    () => goals.filter(
-      (g) => g.saved >= g.target && g.target > 0
-    ),
-    [goals]
-  );
-
-  const totalSaved = goals.reduce(
-    (sum, g) => sum + g.saved,
-    0
-  );
-
-  const totalTarget = goals.reduce(
-    (sum, g) => sum + g.target,
-    0
-  );
-
-  const overall = totalTarget
-    ? Math.round(totalSaved / totalTarget * 100)
-    : 0;
-
-  const chartData = useMemo(() => {
-    const map = new Map();
-
-    contributions.forEach((c) => {
-      const d = new Date(c.dateIso);
-
-      if (Number.isNaN(d.getTime())) return;
-
-      const key =
-        `${d.getFullYear()}-${String(
-          d.getMonth() + 1
-        ).padStart(2, "0")}`;
-
-      map.set(
-        key,
-        (map.get(key) || 0) + c.amount
-      );
-    });
-
-    let running = 0;
-
-    return [...map.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, amount]) => {
-        running += amount;
-
-        const [year, month] = key.split("-");
-
-        return {
-          month: new Date(
-            Number(year),
-            Number(month) - 1,
-            1
-          ).toLocaleDateString("en-IN", {
-            month: "short"
-          }),
-          amount: running
-        };
-      });
-  }, [contributions]);
-
-  const recent = useMemo(
-    () => [...contributions].sort(
-      (a, b) =>
-        new Date(b.dateIso || 0) -
-        new Date(a.dateIso || 0)
-    ),
-    [contributions]
-  );
-
-  async function saveGoal(payload) {
-    setSaving(true);
-    setError("");
-
-    try {
-      const body = {
-        name: payload.title,
-        title: payload.title,
-        target_amount: payload.target,
-        target: payload.target,
-        saved_amount: payload.saved,
-        saved: payload.saved,
-        deadline: payload.deadline || null,
-        note: payload.quote,
-        color: payload.color,
-        emoji: payload.emoji
-      };
-
-      if (payload.id != null) {
-        await api.updateSavingsGoal(
-          payload.id,
-          body
-        );
-      } else {
-        await api.createSavingsGoal(body);
-      }
-
-      setModal(null);
-
-      setNotice(
-        payload.id != null
-          ? "Savings goal updated."
-          : "Savings goal created."
-      );
-
-      await loadData();
-    } catch (e) {
-      setError(
-        e?.message || "Could not save the goal."
-      );
-    } finally {
-      setSaving(false);
-    }
+  const [showAllContribs, setShowAllContribs] = useState(false);
+  const [extendGoal, setExtendGoal] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  // deadlines are ISO dates (YYYY-MM-DD) from the API
+  function isOverdue(deadlineIso) {
+    if (!deadlineIso) return false;
+    return daysUntil(deadlineIso) < 0;
   }
-
-  async function addContribution(amount) {
-    setSaving(true);
-    setError("");
-
-    try {
-      await api.addSavingsContribution(
-        contributeGoal.id,
-        { amount }
-      );
-
-      setContributeGoal(null);
-
-      setNotice(
-        `Added ${money(amount)} to ${contributeGoal.title}.`
-      );
-
-      await loadData();
-    } catch (e) {
-      setError(
-        e?.message ||
-        "Could not add savings. Check the backend contribution endpoint."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeGoal() {
-    setSaving(true);
-    setError("");
-
-    try {
-      await api.deleteSavingsGoal(deleteGoal.id);
-
-      setDeleteGoal(null);
-      setNotice("Savings goal deleted.");
-
-      await loadData();
-    } catch (e) {
-      setError(
-        e?.message || "Could not delete the goal."
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const SORTS = [
-    { key: "deadline", label: "Target date" },
-    { key: "target", label: "Total amount" },
-    { key: "saved", label: "Amount saved" },
-    { key: "remaining", label: "Remaining" },
-    { key: "progress", label: "% progress" }
+  const SORT_OPTIONS = [
+    {
+      key: "deadline",
+      label: "Target Date",
+    },
+    {
+      key: "target",
+      label: "Total Amount",
+    },
+    {
+      key: "saved",
+      label: "Amount Saved",
+    },
+    {
+      key: "remaining",
+      label: "Remaining Amount",
+    },
+    {
+      key: "progress",
+      label: "% Progress",
+    },
   ];
-
+  function sortGoals(list) {
+    return [...list].sort((a, b) => {
+      let av = 0,
+        bv = 0;
+      if (sortKey === "deadline") {
+        av = a.deadlineIso ? new Date(a.deadlineIso).getTime() : Infinity;
+        bv = b.deadlineIso ? new Date(b.deadlineIso).getTime() : Infinity;
+      } else if (sortKey === "target") {
+        av = a.target;
+        bv = b.target;
+      } else if (sortKey === "saved") {
+        av = a.saved;
+        bv = b.saved;
+      } else if (sortKey === "remaining") {
+        av = Math.max(0, a.target - a.saved);
+        bv = Math.max(0, b.target - b.saved);
+      } else if (sortKey === "progress") {
+        av = a.target > 0 ? a.saved / a.target : 0;
+        bv = b.target > 0 ? b.saved / b.target : 0;
+      }
+      if (av === bv) return 0;
+      return sortDir === "asc" ? (av < bv ? -1 : 1) : av < bv ? 1 : -1;
+    });
+  }
+  const rawActive = goals.filter((g) => g.saved < g.target);
+  const activeGoals = sortGoals(rawActive);
+  const completedGoals = goals.filter((g) => g.saved >= g.target);
+  const totalSaved = activeGoals.reduce((s, g) => s + g.saved, 0);
+  const totalTarget = activeGoals.reduce((s, g) => s + g.target, 0);
   return (
-    <main className="sav-page">
-      <div className="sav-heading">
-        <div>
-          <div className="sav-eyebrow">
-            <span />
-            YOUR FINANCIAL FUTURE
+    <div className="space-y-6">
+      {modal && (
+        <GoalModal
+          key={modal === "add" ? "add" : modal.id}
+          initial={modal === "add" ? undefined : modal}
+          onSave={saveGoal}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {confirmDelete && (
+        <Modal title="Delete Goal" onClose={() => setConfirmDelete(null)}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100">
+              <span className="text-2xl">{confirmDelete.emoji}</span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{confirmDelete.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  ₹{confirmDelete.saved.toLocaleString()} saved of ₹{confirmDelete.target.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this goal? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteGoal(confirmDelete.id).catch(() => {});
+                  setConfirmDelete(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium bg-red-500 hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
+        </Modal>
+      )}
 
-          <h1>Savings Goals</h1>
+      {extendGoal && (
+        <ExtendDeadlineModal
+          goal={extendGoal}
+          onSave={(d) => saveGoal({ ...extendGoal, deadlineIso: d })}
+          onClose={() => setExtendGoal(null)}
+        />
+      )}
 
-          <p>
-            Work towards your financial dreams, one step
-            at a time.
-          </p>
+      {addSav && (
+        <AddSavingsModal
+          goal={addSav}
+          onSave={async (amt) => {
+            const updated = await contribute(addSav, amt);
+            if (updated.saved >= updated.target) setSuccessGoal(updated);
+          }}
+          onClose={() => setAddSav(null)}
+        />
+      )}
+      {successGoal && (
+        <GoalSuccessPopup
+          goal={successGoal}
+          onClose={() => setSuccessGoal(null)}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold font-['Poppins'] text-foreground">Savings Goals</h2>
+          <p className="text-muted-foreground text-sm mt-0.5">Work towards your financial dreams</p>
         </div>
-
         <button
-          className="sav-button sav-button-primary sav-new-goal"
-          onClick={() => setModal({ mode: "add" })}
+          onClick={() => setModal("add")}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition hover:opacity-90"
+          style={{
+            background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+          }}
         >
-          <Plus size={17} />
-          New Goal
+          <Plus size={16} /> New Goal
         </button>
       </div>
 
-      {error && (
-        <div className="sav-alert">
-          <AlertTriangle size={17} />
-          <span>{error}</span>
-          <button
-            onClick={() => setError("")}
-            aria-label="Dismiss"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="sav-success-alert">
-          <CheckCircle2 size={17} />
-          <span>{notice}</span>
-          <button
-            onClick={() => setNotice("")}
-            aria-label="Dismiss"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      <section className="sav-stats-grid">
-        <article className="sav-stat-card">
-          <div className="sav-stat-icon sav-stat-blue">
-            <PiggyBank size={22} />
-          </div>
-
-          <div className="sav-stat-copy">
-            <span>Total Saved</span>
-            <strong>{money(totalSaved)}</strong>
-            <small>Across all your goals</small>
-          </div>
-
-          <span className="sav-stat-watermark">₹</span>
-        </article>
-
-        <article className="sav-stat-card">
-          <div className="sav-stat-icon sav-stat-deep">
-            <Target size={22} />
-          </div>
-
-          <div className="sav-stat-copy">
-            <span>Target Amount</span>
-            <strong>{money(totalTarget)}</strong>
-            <small>
-              {goals.length}{" "}
-              {goals.length === 1 ? "goal" : "goals"} in
-              your plan
-            </small>
-          </div>
-
-          <span className="sav-stat-watermark">
-            <Target size={42} />
-          </span>
-        </article>
-
-        <article className="sav-stat-card">
-          <div className="sav-stat-icon sav-stat-light">
-            <BarChart2 size={22} />
-          </div>
-
-          <div className="sav-stat-copy">
-            <span>Overall Progress</span>
-            <strong>{overall}%</strong>
-
-            <div className="sav-mini-progress">
-              <span
-                style={{
-                  width: `${clamp(overall)}%`
-                }}
-              />
+      {/* Summary stats — based on active goals only */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {[
+          {
+            label: "Total Saved",
+            value: `₹${totalSaved.toLocaleString()}`,
+            icon: PiggyBank,
+            g: "from-[#2E93C7] to-[#0D6D91]",
+          },
+          {
+            label: "Target Amount",
+            value: `₹${totalTarget.toLocaleString()}`,
+            icon: Target,
+            g: "from-[#0D6D91] to-[#143452]",
+          },
+          {
+            label: "Overall Progress",
+            value: `${totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0}%`,
+            icon: BarChart2,
+            g: "from-[#5FA7D2] to-[#2E93C7]",
+          },
+        ].map((s) => (
+          <Card key={s.label} className="p-4 flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${s.g}`}>
+              <s.icon size={20} className="text-white" />
             </div>
-          </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-xl font-bold font-['Poppins'] text-foreground">{s.value}</p>
+            </div>
+          </Card>
+        ))}
+      </div>
 
-          <span className="sav-stat-watermark">
-            <TrendingUp size={42} />
-          </span>
-        </article>
-      </section>
-
-      <section className="sav-section">
-        <div className="sav-section-heading">
-          <div>
-            <h2>Your goals</h2>
-            <p>
-              Keep your priorities in sight and your
-              progress moving.
-            </p>
-          </div>
-
-          <span className="sav-count">
-            {activeGoals.length} active
-          </span>
-        </div>
-
-        {activeGoals.length > 1 && (
-          <div className="sav-sort-row">
-            <span>Sort by</span>
-
-            {SORTS.map((s) => (
+      {/* Sort controls */}
+      {activeGoals.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Sort by:</span>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sortKey === opt.key;
+            return (
               <button
-                key={s.key}
-                className={
-                  sortKey === s.key ? "active" : ""
-                }
+                key={opt.key}
                 onClick={() => {
-                  if (sortKey === s.key) {
-                    setSortDir(
-                      sortDir === "asc" ? "desc" : "asc"
-                    );
-                  } else {
-                    setSortKey(s.key);
+                  if (active) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                  else {
+                    setSortKey(opt.key);
                     setSortDir("asc");
                   }
                 }}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${active ? "text-white border-transparent" : "text-muted-foreground border-border bg-card hover:border-primary/40 hover:text-foreground"}`}
+                style={
+                  active
+                    ? {
+                        background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+                      }
+                    : {}
+                }
               >
-                {s.label}
-
-                {sortKey === s.key ? (
-                  <span>
-                    {sortDir === "asc" ? " ↑" : " ↓"}
-                  </span>
-                ) : null}
+                {opt.label}
+                {active && (
+                  <span className="ml-0.5 text-[10px] leading-none">{sortDir === "asc" ? "↑" : "↓"}</span>
+                )}
               </button>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        {loading ? (
-          <div className="sav-loading">
-            <span className="sav-spinner" />
-            Loading your savings goals…
-          </div>
-        ) : activeGoals.length ? (
-          <div className="sav-goal-grid">
-            {activeGoals.map((g) => {
-              const pct = g.target > 0
-                ? clamp(
-                    Math.round(
-                      g.saved / g.target * 100
-                    )
-                  )
-                : 0;
+      {/* Active goals */}
+      {activeGoals.length > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+          {activeGoals.map((g) => {
+            const pct = Math.min(Math.round((g.saved / g.target) * 100), 100);
+            const overdue = isOverdue(g.deadlineIso);
+            // days remaining (negative = passed)
+            const daysLeft = g.deadlineIso ? daysUntil(g.deadlineIso) : null;
+            return (
+              <Card key={g.id} className="p-6 relative overflow-hidden flex flex-col">
+                <div className="absolute top-0 right-0 w-32 h-32 opacity-5 rounded-full -translate-y-8 translate-x-8 bg-primary" />
 
-              const left = daysLeft(g.deadline);
-              const overdue = isOverdue(g.deadline);
-
-              return (
-                <article
-                  className="sav-goal-card"
-                  key={g.id}
-                >
-                  <div
-                    className="sav-goal-card-glow"
-                    style={{ background: g.color }}
-                  />
-
-                  <div className="sav-goal-top">
-                    <div className="sav-goal-identity">
-                      <span
-                        className="sav-goal-emoji"
-                        style={{
-                          background: `${g.color}18`,
-                          borderColor: `${g.color}40`
-                        }}
-                      >
-                        {g.emoji}
-                      </span>
-
-                      <div>
-                        <h3>{g.title}</h3>
-                        <p>
-                          Target date: {g.deadline || "Not set"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="sav-goal-actions">
-                      <button
-                        className="sav-icon-button"
-                        title="Edit goal"
-                        onClick={() => setModal(g)}
-                      >
-                        <Edit2 size={15} />
-                      </button>
-
-                      <button
-                        className="sav-icon-button sav-delete-icon"
-                        title="Delete goal"
-                        onClick={() => setDeleteGoal(g)}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                {/* ── Row 1: emoji + title + actions — fixed height ── */}
+                <div className="relative flex items-center justify-between mb-3">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <span className="text-2xl shrink-0 mt-0.5">{g.emoji}</span>
+                    <div className="min-w-0 min-h-[3rem]">
+                      <h3 className="text-base font-bold font-['Poppins'] text-foreground leading-snug">
+                        {g.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{g.deadline ? `Due ${g.deadline}` : "No target date"}</p>
                     </div>
                   </div>
-
-                  <div className="sav-circle-wrap">
-                    <svg
-                      viewBox="0 0 100 100"
-                      className="sav-circle"
+                  <div className="flex gap-1 shrink-0 ml-2">
+                    <button
+                      onClick={() => setModal(g)}
+                      className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <circle
-                        className="sav-circle-track"
-                        cx="50"
-                        cy="50"
-                        r="41"
-                      />
-
-                      <circle
-                        className="sav-circle-value"
-                        cx="50"
-                        cy="50"
-                        r="41"
-                        style={{
-                          stroke: g.color,
-                          strokeDasharray:
-                            `${pct * 2.576} 257.6`
-                        }}
-                      />
-                    </svg>
-
-                    <div className="sav-circle-label">
-                      <strong>{pct}%</strong>
-                      <span>completed</span>
-                    </div>
+                      <Edit2 size={13} />
+                    </button>
+                    <LockedBtn
+                      role={role}
+                      feature="delete_goal"
+                      onClick={() => setConfirmDelete(g)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </LockedBtn>
                   </div>
+                </div>
 
-                  <div className="sav-goal-amounts">
-                    <div>
-                      <span>Saved so far</span>
-                      <strong>{money(g.saved)}</strong>
-                    </div>
-
-                    <div className="sav-amount-target">
-                      <span>Goal target</span>
-                      <strong>{money(g.target)}</strong>
-                    </div>
+                {/* ── Row 2: circle progress — fixed height ── */}
+                <div className="relative flex justify-center my-3">
+                  <CircleProgress pct={pct} size={80} stroke={8} color="#2E93C7" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-base font-bold text-foreground">{pct}%</span>
                   </div>
+                </div>
 
-                  <div className="sav-progress">
-                    <span
+                {/* ── Row 3: saved / target bar — fixed height ── */}
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Saved</span>
+                    <span className="font-semibold text-foreground">₹{g.saved.toLocaleString()}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${pct}%`,
-                        background:
-                          `linear-gradient(90deg, ${g.color}, ${DEEP_BLUE})`
+                        background: "linear-gradient(90deg, #2E93C7, #0D6D91)",
                       }}
                     />
                   </div>
-
-                  <div className="sav-goal-remaining">
-                    <span>
-                      {money(
-                        Math.max(0, g.target - g.saved)
-                      )} left to go
-                    </span>
-                    <strong>{pct}%</strong>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Target</span>
+                    <span className="font-semibold text-foreground">₹{g.target.toLocaleString()}</span>
                   </div>
+                </div>
 
-                  {g.deadline && (
-                    <div
-                      className={`sav-deadline ${
-                        overdue
-                          ? "overdue"
-                          : left !== null && left <= 30
-                            ? "soon"
-                            : ""
-                      }`}
-                    >
-                      <CalendarDays size={14} />
-
-                      {overdue
-                        ? "Deadline passed"
-                        : left === null
-                          ? `Due ${g.deadline}`
-                          : `${left} days remaining`}
-                    </div>
-                  )}
-
-                  <p className="sav-goal-quote">
-                    “{g.quote}”
-                  </p>
-
-                  <button
-                    className="sav-button sav-button-primary sav-add-savings"
-                    onClick={() => setContributeGoal(g)}
-                  >
-                    <Plus size={16} />
-                    Add Savings
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="sav-empty">
-            <div className="sav-empty-icon">
-              <Target size={26} />
-            </div>
-
-            <h3>No active savings goals yet</h3>
-
-            <p>
-              Create your first goal and start building
-              towards something meaningful.
-            </p>
-
-            <button
-              className="sav-button sav-button-primary"
-              onClick={() => setModal({ mode: "add" })}
-            >
-              <Plus size={16} />
-              Create your first goal
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="sav-lower-grid">
-        <article className="sav-panel sav-contributions-panel">
-          <div className="sav-panel-heading">
-            <div className="sav-panel-title-icon">
-              <TrendingUp size={17} />
-            </div>
-
-            <div>
-              <h2>Recent Contributions</h2>
-              <p>Every deposit gets you closer.</p>
-            </div>
-
-            <button
-              className="sav-text-button"
-              onClick={() => setShowAll(true)}
-            >
-              View all <ChevronRight size={15} />
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="sav-muted-state">
-              Loading contributions…
-            </div>
-          ) : recent.length ? (
-            <div className="sav-contribution-list">
-              {(showAll ? recent : recent.slice(0, 4)).map(
-                (c) => (
+                {/* ── Row 4: days remaining + quote ── */}
+                {daysLeft !== null && (
                   <div
-                    className="sav-contribution-row"
-                    key={c.id}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mb-2 text-xs font-medium ${overdue ? "bg-red-50 text-red-600" : daysLeft <= 30 ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"}`}
                   >
-                    <span className="sav-contribution-emoji">
-                      {c.goalEmoji}
-                    </span>
-
-                    <div className="sav-contribution-details">
-                      <strong>{c.goalTitle}</strong>
-                      <span>
-                        {formatContributionDate(c.dateIso)}
-                      </span>
-                    </div>
-
-                    <span className="sav-contribution-amount">
-                      +{money(c.amount)}
-                    </span>
+                    <CalendarDays size={12} />
+                    {overdue ? "Deadline passed" : daysLeft === 0 ? "Due today" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining`}
+                    {overdue && (
+                      <button onClick={() => setExtendGoal(g)} className="ml-auto underline hover:no-underline">
+                        Extend date
+                      </button>
+                    )}
                   </div>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="sav-muted-state">
-              No contributions yet. Add savings to a goal
-              to see them here.
-            </div>
-          )}
-        </article>
+                )}
+                <div className="px-3 py-2 rounded-xl mb-3 bg-secondary border-l-[3px] border-primary">
+                  <p className="text-xs italic text-muted-foreground truncate">&quot;{g.quote}&quot;</p>
+                </div>
 
-        <article className="sav-panel sav-chart-panel">
-          <div className="sav-panel-heading">
-            <div className="sav-panel-title-icon">
-              <BarChart2 size={17} />
-            </div>
-
-            <div>
-              <h2>Savings Growth</h2>
-              <p>Your contributions over time</p>
-            </div>
-          </div>
-
-          {chartData.length > 1 ? (
-            <div className="sav-chart">
-              <ResponsiveContainer
-                width="100%"
-                height={230}
-              >
-                <AreaChart
-                  data={chartData}
-                  margin={{
-                    top: 10,
-                    right: 8,
-                    left: 0,
-                    bottom: 0
+                {/* ── Row 5: button — always at the bottom ── */}
+                <button
+                  onClick={() => setAddSav(g)}
+                  className="mt-auto w-full py-2.5 rounded-xl text-white text-sm font-medium transition hover:opacity-90"
+                  style={{
+                    background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
                   }}
                 >
-                  <defs>
-                    <linearGradient
-                      id="savGrowthFill"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="0%"
-                        stopColor={BLUE}
-                        stopOpacity={0.28}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={BLUE}
-                        stopOpacity={0.02}
-                      />
-                    </linearGradient>
-                  </defs>
-
-                  <CartesianGrid
-                    stroke="#e8f0f6"
-                    strokeDasharray="4 4"
-                    vertical={false}
-                  />
-
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{
-                      fill: "#8193a3",
-                      fontSize: 11
-                    }}
-                  />
-
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{
-                      fill: "#8193a3",
-                      fontSize: 11
-                    }}
-                    tickFormatter={(v) =>
-                      v >= 1000
-                        ? `₹${Math.round(v / 1000)}k`
-                        : `₹${v}`
-                    }
-                    width={45}
-                  />
-
-                  <Tooltip
-                    formatter={(v) => [
-                      money(v),
-                      "Contributed to date"
-                    ]}
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid #e4edf4",
-                      boxShadow: "0 8px 24px #183b5312"
-                    }}
-                  />
-
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke={BLUE}
-                    strokeWidth={2.5}
-                    fill="url(#savGrowthFill)"
-                    activeDot={{
-                      r: 5,
-                      strokeWidth: 0
-                    }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="sav-chart-empty">
-              <div>
-                <TrendingUp size={24} />
-                <p>
-                  Your growth chart will appear as you
-                  add contributions across dates.
-                </p>
-              </div>
-            </div>
-          )}
-        </article>
-      </section>
-
-      {completedGoals.length > 0 && (
-        <section className="sav-section sav-completed-section">
-          <div className="sav-section-heading">
-            <div>
-              <h2>
-                <CheckCircle2 size={20} />
-                Completed Goals
-              </h2>
-              <p>
-                You did it — celebrate the progress you made.
-              </p>
-            </div>
-
-            <span className="sav-completed-count">
-              {completedGoals.length} achieved
-            </span>
-          </div>
-
-          <div className="sav-goal-grid">
-            {completedGoals.map((g) => (
-              <article
-                className="sav-goal-card sav-completed-card"
-                key={g.id}
-              >
-                <div className="sav-completed-strip" />
-
-                <div className="sav-goal-top">
-                  <div className="sav-goal-identity">
-                    <span className="sav-goal-emoji">
-                      {g.emoji}
-                    </span>
-
-                    <div>
-                      <h3>{g.title}</h3>
-                      <p>
-                        Target: {g.deadline || "Reached"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="sav-done-pill">
-                    <CheckCircle2 size={13} />
-                    Done
-                  </span>
-                </div>
-
-                <div className="sav-progress">
-                  <span style={{ width: "100%" }} />
-                </div>
-
-                <div className="sav-goal-remaining">
-                  <span>Saved {money(g.saved)}</span>
-                  <strong>100%</strong>
-                </div>
-
-                <p className="sav-goal-quote">
-                  “{g.quote}”
-                </p>
-
-                <button
-                  className="sav-completed-remove"
-                  onClick={() => setDeleteGoal(g)}
-                >
-                  <Trash2 size={13} />
-                  Remove goal
+                  Add Savings
                 </button>
-              </article>
-            ))}
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="p-10 flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center">
+            <Target size={24} className="text-primary" />
           </div>
-        </section>
+          <p className="text-sm font-medium text-foreground">No active goals</p>
+          <p className="text-xs text-muted-foreground">
+            Click &quot;New Goal&quot; to start saving towards something meaningful.
+          </p>
+        </Card>
       )}
 
-      {modal && (
-        <GoalModal
-          initial={modal.mode === "add" ? null : modal}
-          onClose={() => setModal(null)}
-          onSave={saveGoal}
-          saving={saving}
-        />
-      )}
-
-      {contributeGoal && (
-        <ContributionModal
-          goal={contributeGoal}
-          onClose={() => setContributeGoal(null)}
-          onSave={addContribution}
-          saving={saving}
-        />
-      )}
-
-      {deleteGoal && (
-        <ConfirmDelete
-          goal={deleteGoal}
-          onClose={() => setDeleteGoal(null)}
-          onConfirm={removeGoal}
-          saving={saving}
-        />
-      )}
-
-      {showAll && (
-        <Modal
-          title="All contributions"
-          onClose={() => setShowAll(false)}
-          wide
-        >
-          <div className="sav-all-contributions">
-            {recent.map((c) => (
-              <div
-                className="sav-contribution-row"
-                key={c.id}
-              >
-                <span className="sav-contribution-emoji">
-                  {c.goalEmoji}
-                </span>
-
-                <div className="sav-contribution-details">
-                  <strong>{c.goalTitle}</strong>
-                  <span>
-                    {formatContributionDate(c.dateIso)}
+      {/* ── Recent Contributions ── */}
+      {showAllContribs && (
+        <Modal title="All Contributions" onClose={() => setShowAllContribs(false)}>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {[...contributions]
+              .sort((a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime())
+              .map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg, #2E93C720, #2E93C710)",
+                    }}
+                  >
+                    {c.goalEmoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{c.goalTitle}</p>
+                    <p className="text-xs text-muted-foreground">{c.dateLabel}</p>
+                  </div>
+                  <span className="text-sm font-bold text-green-600 shrink-0">
+                    +₹{c.amount.toLocaleString()}
                   </span>
                 </div>
-
-                <span className="sav-contribution-amount">
-                  +{money(c.amount)}
-                </span>
-              </div>
-            ))}
-
-            {!recent.length && (
-              <div className="sav-muted-state">
-                No contributions recorded yet.
-              </div>
+              ))}
+            {contributions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No contributions yet.</p>
             )}
           </div>
         </Modal>
       )}
-    </main>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
+              }}
+            >
+              <TrendingUp size={14} className="text-white" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Recent Contributions</h3>
+          </div>
+          <button
+            onClick={() => setShowAllContribs(true)}
+            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+          >
+            View All <ChevronRight size={13} />
+          </button>
+        </div>
+
+        {contributions.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No contributions recorded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {[...contributions]
+              .sort((a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime())
+              .slice(0, 3)
+              .map((c, i) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/60 transition-colors group"
+                  style={{
+                    animationDelay: `${i * 60}ms`,
+                  }}
+                >
+                  {/* Emoji badge */}
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 border border-border"
+                    style={{
+                      background: "linear-gradient(135deg, #EAF4FB, #F6F9FC)",
+                    }}
+                  >
+                    {c.goalEmoji}
+                  </div>
+
+                  {/* Goal info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                      {c.goalTitle}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{c.dateLabel}</p>
+                  </div>
+
+                  {/* Amount pill */}
+                  <div
+                    className="shrink-0 px-2.5 py-1 rounded-full text-xs font-bold text-green-700"
+                    style={{
+                      background: "#dcfce7",
+                    }}
+                  >
+                    +₹{c.amount.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Savings growth chart */}
+      <Card className="p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Savings Growth Over Time</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={savingsGrowth}>
+            <defs>
+              <linearGradient id="sav-areaG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#2E93C7" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#2E93C7" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E4EFF7" />
+            <XAxis
+              dataKey="month"
+              tick={{
+                fontSize: 11,
+                fill: "#5FA7D2",
+              }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{
+                fontSize: 11,
+                fill: "#5FA7D2",
+              }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip formatter={(v) => [`₹${v.toLocaleString()}`, "Total Savings"]} />
+            <Area
+              type="monotone"
+              dataKey="amount"
+              stroke="#2E93C7"
+              strokeWidth={2.5}
+              fill="url(#sav-areaG)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </Card>
+
+      {/* Completed goals section */}
+      {completedGoals.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle size={13} className="text-green-600" />
+              </div>
+              <h3 className="text-base font-semibold font-['Poppins'] text-foreground">Completed Goals</h3>
+            </div>
+            <div className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+              {completedGoals.length} achieved
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {completedGoals.map((g) => (
+              <motion.div
+                key={g.id}
+                initial={{
+                  opacity: 0,
+                  y: 12,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 22,
+                }}
+              >
+                <Card
+                  className="p-5 relative overflow-hidden border-green-200"
+                  style={{
+                    borderColor: "#bbf7d0",
+                  }}
+                >
+                  {/* Green shimmer strip */}
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+                    style={{
+                      background: "linear-gradient(90deg, #22c55e, #16a34a)",
+                    }}
+                  />
+
+                  {/* Watermark tick */}
+                  <div className="absolute bottom-3 right-4 text-green-100 text-5xl font-black select-none pointer-events-none leading-none">
+                    ✓
+                  </div>
+
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl"
+                          style={{
+                            background: `${g.color}18`,
+                            border: `1.5px solid ${g.color}30`,
+                          }}
+                        >
+                          {g.emoji}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold font-['Poppins'] text-foreground leading-tight">
+                            {g.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">{g.deadline ? `by ${g.deadline}` : "Completed"}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0 mt-0.5">
+                        Done ✓
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 mb-3">
+                      <div className="h-2 bg-green-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full w-full rounded-full"
+                          style={{
+                            background: "linear-gradient(90deg, #22c55e, #16a34a)",
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Saved ₹{g.saved.toLocaleString()}</span>
+                        <span className="font-semibold text-green-600">100%</span>
+                      </div>
+                    </div>
+
+                    <LockedBtn
+                      role={role}
+                      feature="delete_goal"
+                      onClick={() => setConfirmDelete(g)}
+                      className="text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1"
+                    >
+                      <Trash2 size={11} /> Remove
+                    </LockedBtn>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

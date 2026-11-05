@@ -12,5 +12,7 @@ class Expense(Base):
     category = Column(String(100), nullable=False)
     amount = Column(Float, nullable=False)
     description = Column(String(255), nullable=True)
-    expense_date = Column(Date, nullable=False)
+    expense_date = Column(Date, nullable=False, index=True)
+    # Completed | Pending | Cancelled (cancelled expenses are ignored in totals)
+    status = Column(String(20), nullable=False, default="Completed")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
