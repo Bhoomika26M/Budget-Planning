@@ -1,0 +1,51 @@
+# Node & Frontend
+node_modules/
+client/node_modules/
+dist/
+client/dist/
+.vite/
+
+# Python & Backend
+server/venv312/
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+server/venv/
+venv/
+.venv/
+.pytest_cache/
+*.sqlite
+*.sqlite3
+*.db
+server/*.db
+server/budgetbuddy.db
+
+# Environment variables
+.env
+server/.env
+client/.env
+!.env.example
+!server/.env.example
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Dependencies and generated files
+node_modules/
+dist/
+.vite/
+__pycache__/
+.pytest_cache/
+venv/
+venv312/

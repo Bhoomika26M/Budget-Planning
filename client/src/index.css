@@ -1,0 +1,140 @@
+/* BudgetBuddy Global Theme & Design Tokens matching Figma Design */
+:root {
+  --bg-page: #E2ECF8;
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-light: #94A3B8;
+  
+  --primary-navy: #1E293B;
+  --primary-blue: #2563EB;
+  --primary-blue-hover: #1D4ED8;
+  --primary-light: #EFF6FF;
+
+  /* Role specific Figma tokens */
+  --student-card-bg: #E6F4FE;
+  --student-card-border: #38BDF8;
+  --student-badge-bg: #FFFFFF;
+  --student-badge-text: #0284C7;
+  --student-cta: #0284C7;
+
+  --premium-card-bg: #FEF9C3;
+  --premium-card-border: #FBBF24;
+  --premium-badge-bg: #FDE68A;
+  --premium-badge-text: #B45309;
+  --premium-cta: #B45309;
+
+  --admin-card-bg: #1E1B4B;
+  --admin-card-border: #2E2866;
+  --admin-badge-bg: #4338CA;
+  --admin-badge-text: #FFFFFF;
+  --admin-cta: #A5B4FC;
+
+  --color-income: #10B981;
+  --color-income-light: #ECFDF5;
+  --color-expense: #EF4444;
+  --color-expense-light: #FEF2F2;
+
+  --border-light: #CBD5E1;
+  --border-focus: #3B82F6;
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.09), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  outline: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Common Utility Classes */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-light);
+  padding: 2rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: #FFFFFF;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-blue-hover);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--primary-blue);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid #CBD5E1;
+  font-size: 0.95rem;
+}
+
+.btn-secondary:hover {
+  background-color: #F8FAFC;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

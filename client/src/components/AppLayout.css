@@ -1,0 +1,139 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  background: var(--bg-page);
+}
+
+.app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px;
+  background: #fff;
+  border-right: 1px solid #E2E8F0;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-navy);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.app-brand-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+  background: var(--primary-blue);
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 36px;
+}
+
+.app-nav-item,
+.app-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+}
+
+.app-nav-item:hover,
+.app-nav-item.active {
+  color: var(--primary-blue);
+  background: var(--primary-light);
+}
+
+.app-logout {
+  margin-top: auto;
+  color: #DC2626;
+}
+
+.app-logout:hover {
+  background: #FEF2F2;
+}
+
+.app-content {
+  width: calc(100% - 230px);
+  margin-left: 230px;
+}
+
+.app-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: #fff;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.app-topbar-title,
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-user-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--primary-blue);
+  font-weight: 800;
+}
+
+.app-main {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto 48px;
+}
+
+@media (max-width: 800px) {
+  .app-sidebar {
+    width: 76px;
+    padding: 20px 12px;
+  }
+
+  .app-brand span:last-child,
+  .app-nav-item span,
+  .app-logout span {
+    display: none;
+  }
+
+  .app-nav-item,
+  .app-logout {
+    justify-content: center;
+  }
+
+  .app-content {
+    width: calc(100% - 76px);
+    margin-left: 76px;
+  }
+
+  .app-main {
+    width: min(1180px, calc(100% - 28px));
+  }
+}
