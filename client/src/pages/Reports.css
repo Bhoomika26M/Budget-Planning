@@ -1,0 +1,27 @@
+.reports-page { padding-top:24px; }
+.reports-heading { margin-bottom:24px; }
+.reports-eyebrow { color:var(--primary-blue); font-size:11px; font-weight:800; letter-spacing:1.5px; margin-bottom:9px; }
+.reports-heading h1 { color:var(--primary-navy); font-size:clamp(26px,4vw,34px); margin-bottom:8px; }
+.reports-heading p:last-child { color:var(--text-muted); font-size:14px; }
+.reports-state { min-height:360px; display:flex; align-items:center; justify-content:center; gap:12px; color:var(--text-muted); }
+.reports-error { display:flex; align-items:center; gap:12px; padding:16px; color:#991B1B; background:#FEF2F2; border-radius:12px; }
+.reports-error span { flex:1; }
+.reports-error button { padding:8px 14px; color:white; background:#DC2626; border-radius:8px; font-weight:700; }
+.reports-overview { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:20px; }
+.reports-overview article, .reports-card { background:white; border:1px solid var(--border-light); border-radius:var(--radius-xl); box-shadow:var(--shadow-card); }
+.reports-overview article { padding:21px; }
+.reports-overview span { display:block; margin-bottom:12px; color:var(--text-muted); font-size:13px; }
+.reports-overview strong { color:var(--primary-navy); font-size:21px; overflow-wrap:anywhere; }
+.reports-card { padding:24px; }
+.reports-card h2 { color:var(--primary-navy); font-size:18px; }
+.reports-month { margin:6px 0 18px; color:var(--text-muted); font-size:12px; }
+.reports-table-wrap { overflow-x:auto; }
+.reports-card table { width:100%; border-collapse:collapse; }
+.reports-card th, .reports-card td { padding:13px; border-bottom:1px solid var(--border-light); text-align:left; font-size:13px; }
+.reports-card th { color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.6px; }
+.reports-card td:last-child, .reports-card th:last-child { text-align:right; }
+.reports-empty { min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--text-muted); }
+.spin { animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@media (max-width:1000px) { .reports-overview { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:650px) { .reports-overview { grid-template-columns:1fr; } }
