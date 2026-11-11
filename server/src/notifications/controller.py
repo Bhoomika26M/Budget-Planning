@@ -22,7 +22,17 @@ def get_notifications(
     user: User = Depends(get_current_user),
 ):
     generate_alerts(db, user)
-    return list_notifications(db, user.id)
+
+    notifications = list_notifications(db, user.id)
+
+    # Hide premium-only monthly report notifications from free users
+    if user.role not in ("premium", "admin"):
+        notifications = [
+            n for n in notifications
+            if not (n.key or "").startswith("report-")
+        ]
+
+    return notifications
 
 
 @router.get("/unread-count")

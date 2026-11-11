@@ -213,7 +213,7 @@ def generate_alerts(db: Session, user: User):
             if user.role in ("premium", "admin"):
                 _budget_alerts(db, user, today)
             _goal_alerts(db, user, today)
-        if user.pref_reports:
+        if user.pref_reports and user.role in ("premium", "admin"):
             _monthly_report_alert(db, user, today)
     except Exception:  # alerts must never break the main request
         db.rollback()
