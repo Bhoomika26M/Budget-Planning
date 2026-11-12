@@ -11,38 +11,31 @@ import {
   Mail,
   ShieldCheck,
   Wallet,
-  Zap,
 } from "lucide-react";
+
 import { useAuth } from "../../../context/AuthContext";
-import api from "../../../services/api";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import CreateAccountModal from "./SignupForm";
 import AuthPanel from "./AuthPanel";
 import { ROLE_META } from "../../../data/constants";
 
-// Demo login accounts
+// Demo roles - selecting a role does not autofill credentials
 export const DEMO_ROLES = [
   {
     role: "student",
     label: "Student",
-    email: "john.doe@budgetbuddy.in",
-    password: "budget2025",
     icon: GraduationCap,
     desc: "Basic access",
   },
   {
     role: "premium",
     label: "Premium User",
-    email: "premium@budgetbuddy.in",
-    password: "premium123",
     icon: Crown,
     desc: "Full feature access",
   },
   {
     role: "admin",
     label: "Admin",
-    email: "admin@budgetbuddy.in",
-    password: "admin2026",
     icon: ShieldCheck,
     desc: "User management",
   },
@@ -63,19 +56,15 @@ export default function LoginScreen() {
   const [showForgot, setShowForgot] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
-  const [oauthProviders, setOauthProviders] = useState({
-    google: false,
-    github: false,
-  });
 
-  // Check social login providers and handle OAuth errors
+  // Handle OAuth errors and signup navigation
   useEffect(() => {
-    api.oauthProviders().then(setOauthProviders).catch(() => {});
-
     const oauthError = searchParams.get("oauth_error");
 
     if (oauthError === "suspended") {
-      setError("Your account has been suspended. Please contact support.");
+      setError(
+        "Your account has been suspended. Please contact support."
+      );
     } else if (oauthError) {
       setError(
         "Social sign-in failed. Please try again or use your email and password."
@@ -87,27 +76,9 @@ export default function LoginScreen() {
     }
   }, [searchParams]);
 
-  // Handle Google and GitHub login
-  function socialLogin(provider) {
-    if (!oauthProviders[provider]) {
-      setError(
-        `${provider === "google" ? "Google" : "GitHub"} sign-in isn't configured on this server yet (see README → OAuth). Use email & password for now.`
-      );
-      return;
-    }
-
-    window.location.href = api.oauthLoginUrl(provider);
-  }
-
-  // Select a demo role and automatically fill its credentials
-  function selectRole(r) {
-    const demo = DEMO_ROLES.find((d) => d.role === r);
-
-    if (!demo) return;
-
-    setSelectedRole(r);
-    setEmail(demo.email);
-    setPwd(demo.password);
+  // Select a role without autofilling email or password
+  function selectRole(role) {
+    setSelectedRole(role);
     setError("");
   }
 
@@ -174,6 +145,8 @@ export default function LoginScreen() {
 
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
+
+          {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <Wallet size={20} className="text-primary" />
             <span className="font-bold text-lg font-['Poppins'] text-foreground">
@@ -190,80 +163,84 @@ export default function LoginScreen() {
           </p>
 
           {/* Role selector */}
-          
           <div className="mb-6">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-            Sign in as
-          </p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Sign in as
+            </p>
 
-          <div className="grid grid-cols-3 gap-2">
-            {DEMO_ROLES.map((d) => {
-              const meta = ROLE_META[d.role];
-              const active = selectedRole === d.role;
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_ROLES.map((d) => {
+                const meta = ROLE_META[d.role];
+                const active = selectedRole === d.role;
 
-              return (
-                <button
-                  key={d.role}
-                  onClick={() => selectRole(d.role)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
-                  style={
-                    active
-                      ? {
-                          borderColor: meta.color,
-                          background: meta.bg,
-                        }
-                      : {
-                          borderColor: "var(--border)",
-                          background: "var(--card)",
-                        }
-                  }
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-                    style={{
-                      background: active ? `${meta.color}20` : "var(--secondary)",
-                    }}
+                return (
+                  <button
+                    key={d.role}
+                    type="button"
+                    onClick={() => selectRole(d.role)}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
+                    style={
+                      active
+                        ? {
+                            borderColor: meta.color,
+                            background: meta.bg,
+                          }
+                        : {
+                            borderColor: "var(--border)",
+                            background: "var(--card)",
+                          }
+                    }
                   >
-                    <d.icon
-                      size={20}
-                      style={{
-                        color: active ? meta.color : "var(--muted-foreground)",
-                      }}
-                    />
-                  </div>
-
-                  <div className="text-center">
-                    <p
-                      className="text-xs font-semibold leading-tight"
-                      style={{
-                        color: active ? meta.color : "var(--foreground)",
-                      }}
-                    >
-                      {d.label}
-                    </p>
-
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {d.desc}
-                    </p>
-                  </div>
-
-                  {active && (
                     <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
                       style={{
-                        background: meta.color,
+                        background: active
+                          ? `${meta.color}20`
+                          : "var(--secondary)",
                       }}
                     >
-                      <CheckCircle size={12} className="text-white" />
+                      <d.icon
+                        size={20}
+                        style={{
+                          color: active
+                            ? meta.color
+                            : "var(--muted-foreground)",
+                        }}
+                      />
                     </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+
+                    <div className="text-center">
+                      <p
+                        className="text-xs font-semibold leading-tight"
+                        style={{
+                          color: active
+                            ? meta.color
+                            : "var(--foreground)",
+                        }}
+                      >
+                        {d.label}
+                      </p>
+
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {d.desc}
+                      </p>
+                    </div>
+
+                    {active && (
+                      <div
+                        className="w-4 h-4 rounded-full flex items-center justify-center"
+                        style={{ background: meta.color }}
+                      >
+                        <CheckCircle size={12} className="text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-
+          {/* Account creation success */}
           {createSuccess && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-green-200 bg-green-50">
               <CheckCircle size={14} className="text-green-500 shrink-0" />
@@ -274,15 +251,19 @@ export default function LoginScreen() {
             </div>
           )}
 
+          {/* Error message */}
           {error && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-red-200 bg-red-50">
               <AlertTriangle size={14} className="text-red-500 shrink-0" />
 
-              <p className="text-xs text-red-600 font-medium">{error}</p>
+              <p className="text-xs text-red-600 font-medium">
+                {error}
+              </p>
             </div>
           )}
 
           <div className="space-y-4">
+
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -296,6 +277,7 @@ export default function LoginScreen() {
                 />
 
                 <input
+                  type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -303,7 +285,9 @@ export default function LoginScreen() {
                   }}
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
                   className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                    error && !email ? "border-red-300" : "border-border"
+                    error && !email
+                      ? "border-red-300"
+                      : "border-border"
                   }`}
                   placeholder="you@example.com"
                 />
@@ -331,9 +315,11 @@ export default function LoginScreen() {
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
                   type={showPwd ? "text" : "password"}
                   className={`w-full pl-10 pr-10 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                    error && !pwd ? "border-red-300" : "border-border"
+                    error && !pwd
+                      ? "border-red-300"
+                      : "border-border"
                   }`}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                 />
 
                 <button
@@ -380,6 +366,7 @@ export default function LoginScreen() {
 
             {/* Sign in */}
             <button
+              type="button"
               onClick={() => attempt()}
               disabled={loading}
               className="w-full py-3 rounded-xl font-semibold text-white transition hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
@@ -402,6 +389,7 @@ export default function LoginScreen() {
                       stroke="currentColor"
                       strokeWidth="4"
                     />
+
                     <path
                       className="opacity-75"
                       fill="currentColor"
@@ -416,10 +404,6 @@ export default function LoginScreen() {
               )}
             </button>
 
-            
-
-            
-
             {/* Create account */}
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
@@ -431,6 +415,7 @@ export default function LoginScreen() {
                 Create account
               </button>
             </p>
+
           </div>
         </div>
       </div>
