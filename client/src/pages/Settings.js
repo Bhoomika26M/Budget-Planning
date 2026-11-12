@@ -1,25 +1,21 @@
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { AlertTriangle, CheckCircle, Chrome, Eye, Github, Lock, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle,  Eye,  Lock, Trash2 } from "lucide-react";
 import Card from "../components/Cards/Card";
 import HelpFeedbackCard from "../components/Cards/HelpFeedbackCard";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import { toProfile } from "../services/mappers";
 
 export default function SettingsScreen() {
   const { dark, setDark } = useOutletContext();
-  const { user: profile, setUser, updateProfile, logout } = useAuth();
+  const { user: profile,  updateProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
   const prefs = { email: profile.pref_email, reports: profile.pref_reports, alerts: profile.pref_alerts };
-  const [oauthProviders, setOauthProviders] = useState({ google: false, github: false });
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    api.oauthProviders().then(setOauthProviders).catch(() => {});
-  }, []);
+  
 
   async function togglePref(key) {
     try {
