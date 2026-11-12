@@ -3,10 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle,
-  Chrome,
   Crown,
   Eye,
-  Github,
   GraduationCap,
   Lock,
   Mail,
@@ -145,101 +143,79 @@ export default function LoginScreen() {
           <p className="text-muted-foreground mb-6">Sign in to manage your money</p>
 
           {/* Role selector */}
+          
           <div className="mb-6">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              Sign in as
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {DEMO_ROLES.map((d) => {
-                const meta = ROLE_META[d.role];
-                const active = selectedRole === d.role;
-                return (
-                  <button
-                    key={d.role}
-                    onClick={() => selectRole(d.role)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
-                    style={
-                      active
-                        ? {
-                            borderColor: meta.color,
-                            background: meta.bg,
-                          }
-                        : {
-                            borderColor: "var(--border)",
-                            background: "var(--card)",
-                          }
-                    }
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            Sign in as
+          </p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {DEMO_ROLES.map((d) => {
+              const meta = ROLE_META[d.role];
+              const active = selectedRole === d.role;
+
+              return (
+                <button
+                  key={d.role}
+                  onClick={() => selectRole(d.role)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
+                  style={
+                    active
+                      ? {
+                          borderColor: meta.color,
+                          background: meta.bg,
+                        }
+                      : {
+                          borderColor: "var(--border)",
+                          background: "var(--card)",
+                        }
+                  }
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                    style={{
+                      background: active ? `${meta.color}20` : "var(--secondary)",
+                    }}
                   >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+                    <d.icon
+                      size={20}
                       style={{
-                        background: active ? `${meta.color}20` : "var(--secondary)",
+                        color: active ? meta.color : "var(--muted-foreground)",
+                      }}
+                    />
+                  </div>
+
+                  <div className="text-center">
+                    <p
+                      className="text-xs font-semibold leading-tight"
+                      style={{
+                        color: active ? meta.color : "var(--foreground)",
                       }}
                     >
-                      <d.icon
-                        size={20}
-                        style={{
-                          color: active ? meta.color : "var(--muted-foreground)",
-                        }}
-                      />
+                      {d.label}
+                    </p>
+
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {d.desc}
+                    </p>
+                  </div>
+
+                  {active && (
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{
+                        background: meta.color,
+                      }}
+                    >
+                      <CheckCircle size={12} className="text-white" />
                     </div>
-                    <div className="text-center">
-                      <p
-                        className="text-xs font-semibold leading-tight"
-                        style={{
-                          color: active ? meta.color : "var(--foreground)",
-                        }}
-                      >
-                        {d.label}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{d.desc}</p>
-                    </div>
-                    {active && (
-                      <div
-                        className="w-4 h-4 rounded-full flex items-center justify-center"
-                        style={{
-                          background: meta.color,
-                        }}
-                      >
-                        <CheckCircle size={12} className="text-white" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {selectedRole ? (
-              <div
-                className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{
-                  background: ROLE_META[selectedRole].bg,
-                }}
-              >
-                <Zap
-                  size={12}
-                  style={{
-                    color: ROLE_META[selectedRole].color,
-                  }}
-                  className="shrink-0"
-                />
-                <p
-                  className="text-[11px]"
-                  style={{
-                    color: ROLE_META[selectedRole].color,
-                  }}
-                >
-                  Demo <strong>{ROLE_META[selectedRole].label}</strong> account filled in — enter password & press Sign in
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary">
-                <Zap size={12} className="text-muted-foreground shrink-0" />
-                <p className="text-[11px] text-muted-foreground">
-                  Pick a demo role above, or sign in with your own account
-                </p>
-              </div>
-            )}
+                  )}
+                </button>
+              );
+            })}
           </div>
+          </div>
+
 
           {createSuccess && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-green-200 bg-green-50">
@@ -359,32 +335,9 @@ export default function LoginScreen() {
               )}
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">or continue with</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
+            
 
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                {
-                  label: "Google",
-                  icon: Chrome,
-                },
-                {
-                  label: "GitHub",
-                  icon: Github,
-                },
-              ].map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  onClick={() => socialLogin(label.toLowerCase())}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-secondary transition-colors"
-                >
-                  <Icon size={16} /> {label}
-                </button>
-              ))}
-            </div>
+            
 
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}

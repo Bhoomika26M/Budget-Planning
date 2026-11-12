@@ -228,20 +228,21 @@ export default function ExpensesScreen() {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setModal(e)}
-                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Edit2 size={14} />
-                      </button>
                       <LockedBtn
                         role={role}
                         feature="delete_expense"
                         onClick={() => setConfirmDelete(e)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
                       >
-                        <Trash2 size={14} />
+                        <Edit2 size={14} />
                       </LockedBtn>
+                      <button
+                        onClick={() => setModal(e)}
+                        className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      
                     </div>
                   </td>
                 </tr>

@@ -509,20 +509,22 @@ export default function IncomeScreen() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
                   <span className="text-sm font-semibold text-foreground">₹{i.amount.toLocaleString()}</span>
-                  <button
-                    onClick={() => setModal(i)}
-                    className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <Edit2 size={12} />
-                  </button>
                   <LockedBtn
                     role={role}
                     feature="delete_income"
                     onClick={() => setConfirmDelete(i)}
                     className="p-1 rounded text-muted-foreground hover:text-red-500 transition-colors"
                   >
-                    <Trash2 size={12} />
+                    <Edit2 size={12} />
                   </LockedBtn>
+                  <button
+                    onClick={() => setModal(i)}
+                    className="p-1 rounded text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Trash2 size={12} />
+                    
+                  </button>
+                  
                 </div>
               </div>
             ))}
