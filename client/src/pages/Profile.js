@@ -6,19 +6,57 @@ import Card from "../components/Cards/Card";
 import { ROLE_META } from "../data/constants";
 import { useAuth } from "../context/AuthContext";
 import { useFinance } from "../context/FinanceContext";
-import { formatShortDate, timeAgo } from "../utils/formatDate";
+import { formatShortDate, timeAgo, monthKey } from "../utils/formatDate";
+
+
 
 // ── Profile ────────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const { user: profile, updateProfile } = useAuth();
-  const { expenses, incomeList, goals } = useFinance();
+  const {
+    expenses,
+    incomeList,
+    goals,
+    selectedMonth,
+    monthlyBudget,
+    setMonthlyBudget,
+  } = useFinance();
   const [showEdit, setShowEdit] = useState(false);
   const [toast, setToast] = useState("");
+  const [editBudget, setEditBudget] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
+  const [savingBudget, setSavingBudget] = useState(false);
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   }
+  async function handleSaveBudget() {
+    const amount = Number(budgetInput);
+
+    if (budgetInput.trim() === "" || !Number.isFinite(amount) || amount < 0) {
+      showToast("Please enter a valid budget.");
+      return;
+    }
+
+    try {
+      setSavingBudget(true);
+
+      await setMonthlyBudget(amount);
+
+      setEditBudget(false);
+      showToast("Monthly budget updated successfully!");
+    } catch (error) {
+      // FinanceContext already handles the API error notification.
+    } finally {
+      setSavingBudget(false);
+    }
+  }
   const initials = getInitials(profile.name);
+
+  const monthlyIncome = incomeList
+  .filter((i) => monthKey(i.dateIso) === selectedMonth)
+  .reduce((total, i) => total + i.amount, 0);
+
   return (
     <div className="space-y-6">
       {toast && (
@@ -101,13 +139,8 @@ export default function ProfileScreen() {
             },
             {
               label: "Monthly Income",
-              value: `₹${Number(profile.monthly_income || 0).toLocaleString()}`,
+              value: `₹${monthlyIncome.toLocaleString()}`,
               icon: TrendingUp,
-            },
-            {
-              label: "Monthly Budget",
-              value: `₹${Number(profile.monthly_budget || 0).toLocaleString()}`,
-              icon: Wallet,
             },
           ].map((f) => (
             <div key={f.label} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/40">
@@ -120,6 +153,61 @@ export default function ProfileScreen() {
               </div>
             </div>
           ))}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/40">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Wallet size={14} className="text-primary" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">Monthly Budget</p>
+
+            {!editBudget ? (
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground mt-0.5">
+                  ₹{Number(monthlyBudget).toLocaleString("en-IN")}
+                </p>
+
+                <button
+                  onClick={() => {
+                    setBudgetInput(String(monthlyBudget));
+                    setEditBudget(true);
+                  }}
+                  className="text-primary hover:opacity-70"
+                >
+                  <Edit2 size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveBudget}
+                    disabled={savingBudget}
+                    className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs"
+                  >
+                    {savingBudget ? "Saving..." : "Save"}
+                  </button>
+
+                  <button
+                    onClick={() => setEditBudget(false)}
+                    disabled={savingBudget}
+                    className="px-3 py-1.5 rounded-lg border border-border text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         </div>
       </Card>
 
