@@ -4,47 +4,38 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle,
-  Chrome,
   Crown,
   Eye,
-  Github,
   GraduationCap,
   Lock,
   Mail,
   ShieldCheck,
   Wallet,
-  Zap,
 } from "lucide-react";
+
 import { useAuth } from "../../../context/AuthContext";
-import api from "../../../services/api";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import CreateAccountModal from "./SignupForm";
 import AuthPanel from "./AuthPanel";
 import { ROLE_META } from "../../../data/constants";
 
-// Demo login accounts
+// Demo roles - selecting a role does not autofill credentials
 export const DEMO_ROLES = [
   {
     role: "student",
     label: "Student",
-    email: "john.doe@budgetbuddy.in",
-    password: "budget2025",
     icon: GraduationCap,
     desc: "Basic access",
   },
   {
     role: "premium",
     label: "Premium User",
-    email: "premium@budgetbuddy.in",
-    password: "premium123",
     icon: Crown,
     desc: "Full feature access",
   },
   {
     role: "admin",
     label: "Admin",
-    email: "admin@budgetbuddy.in",
-    password: "admin2026",
     icon: ShieldCheck,
     desc: "User management",
   },
@@ -65,19 +56,15 @@ export default function LoginScreen() {
   const [showForgot, setShowForgot] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
-  const [oauthProviders, setOauthProviders] = useState({
-    google: false,
-    github: false,
-  });
 
-  // Check social login providers and handle OAuth errors
+  // Handle OAuth errors and signup navigation
   useEffect(() => {
-    api.oauthProviders().then(setOauthProviders).catch(() => {});
-
     const oauthError = searchParams.get("oauth_error");
 
     if (oauthError === "suspended") {
-      setError("Your account has been suspended. Please contact support.");
+      setError(
+        "Your account has been suspended. Please contact support."
+      );
     } else if (oauthError) {
       setError(
         "Social sign-in failed. Please try again or use your email and password."
@@ -89,27 +76,9 @@ export default function LoginScreen() {
     }
   }, [searchParams]);
 
-  // Handle Google and GitHub login
-  function socialLogin(provider) {
-    if (!oauthProviders[provider]) {
-      setError(
-        `${provider === "google" ? "Google" : "GitHub"} sign-in isn't configured on this server yet (see README → OAuth). Use email & password for now.`
-      );
-      return;
-    }
-
-    window.location.href = api.oauthLoginUrl(provider);
-  }
-
-  // Select a demo role and automatically fill its credentials
-  function selectRole(r) {
-    const demo = DEMO_ROLES.find((d) => d.role === r);
-
-    if (!demo) return;
-
-    setSelectedRole(r);
-    setEmail(demo.email);
-    setPwd(demo.password);
+  // Select a role without autofilling email or password
+  function selectRole(role) {
+    setSelectedRole(role);
     setError("");
   }
 
@@ -176,6 +145,8 @@ export default function LoginScreen() {
 
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
+
+          {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <Wallet size={20} className="text-primary" />
             <span className="font-bold text-lg font-['Poppins'] text-foreground">
@@ -205,6 +176,7 @@ export default function LoginScreen() {
                 return (
                   <button
                     key={d.role}
+                    type="button"
                     onClick={() => selectRole(d.role)}
                     className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all"
                     style={
@@ -241,7 +213,9 @@ export default function LoginScreen() {
                       <p
                         className="text-xs font-semibold leading-tight"
                         style={{
-                          color: active ? meta.color : "var(--foreground)",
+                          color: active
+                            ? meta.color
+                            : "var(--foreground)",
                         }}
                       >
                         {d.label}
@@ -264,38 +238,9 @@ export default function LoginScreen() {
                 );
               })}
             </div>
-
-            {selectedRole ? (
-              <div
-                className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{ background: ROLE_META[selectedRole].bg }}
-              >
-                <Zap
-                  size={12}
-                  style={{ color: ROLE_META[selectedRole].color }}
-                  className="shrink-0"
-                />
-
-                <p
-                  className="text-[11px]"
-                  style={{ color: ROLE_META[selectedRole].color }}
-                >
-                  Demo{" "}
-                  <strong>{ROLE_META[selectedRole].label}</strong> account filled
-                  in — press Sign in
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary">
-                <Zap size={12} className="text-muted-foreground shrink-0" />
-
-                <p className="text-[11px] text-muted-foreground">
-                  Pick a demo role above, or sign in with your own account
-                </p>
-              </div>
-            )}
           </div>
 
+          {/* Account creation success */}
           {createSuccess && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-green-200 bg-green-50">
               <CheckCircle size={14} className="text-green-500 shrink-0" />
@@ -306,15 +251,19 @@ export default function LoginScreen() {
             </div>
           )}
 
+          {/* Error message */}
           {error && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-red-200 bg-red-50">
               <AlertTriangle size={14} className="text-red-500 shrink-0" />
 
-              <p className="text-xs text-red-600 font-medium">{error}</p>
+              <p className="text-xs text-red-600 font-medium">
+                {error}
+              </p>
             </div>
           )}
 
           <div className="space-y-4">
+
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -328,6 +277,7 @@ export default function LoginScreen() {
                 />
 
                 <input
+                  type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -335,7 +285,9 @@ export default function LoginScreen() {
                   }}
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
                   className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                    error && !email ? "border-red-300" : "border-border"
+                    error && !email
+                      ? "border-red-300"
+                      : "border-border"
                   }`}
                   placeholder="you@example.com"
                 />
@@ -363,9 +315,11 @@ export default function LoginScreen() {
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
                   type={showPwd ? "text" : "password"}
                   className={`w-full pl-10 pr-10 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
-                    error && !pwd ? "border-red-300" : "border-border"
+                    error && !pwd
+                      ? "border-red-300"
+                      : "border-border"
                   }`}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                 />
 
                 <button
@@ -412,6 +366,7 @@ export default function LoginScreen() {
 
             {/* Sign in */}
             <button
+              type="button"
               onClick={() => attempt()}
               disabled={loading}
               className="w-full py-3 rounded-xl font-semibold text-white transition hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
@@ -434,6 +389,7 @@ export default function LoginScreen() {
                       stroke="currentColor"
                       strokeWidth="4"
                     />
+
                     <path
                       className="opacity-75"
                       fill="currentColor"
@@ -448,32 +404,6 @@ export default function LoginScreen() {
               )}
             </button>
 
-            {/* Social login */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-border" />
-
-              <span className="text-xs text-muted-foreground">
-                or continue with
-              </span>
-
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Google", icon: Chrome },
-                { label: "GitHub", icon: Github },
-              ].map(({ label, icon: Icon }) => (
-                <button
-                  key={label}
-                  onClick={() => socialLogin(label.toLowerCase())}
-                  className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-border bg-card text-foreground text-sm font-medium hover:bg-secondary transition-colors"
-                >
-                  <Icon size={16} /> {label}
-                </button>
-              ))}
-            </div>
-
             {/* Create account */}
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
@@ -485,6 +415,7 @@ export default function LoginScreen() {
                 Create account
               </button>
             </p>
+
           </div>
         </div>
       </div>

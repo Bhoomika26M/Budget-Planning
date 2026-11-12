@@ -1,25 +1,21 @@
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { AlertTriangle, CheckCircle, Chrome, Eye, Github, Lock, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle,  Eye,  Lock, Trash2 } from "lucide-react";
 import Card from "../components/Cards/Card";
 import HelpFeedbackCard from "../components/Cards/HelpFeedbackCard";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import { toProfile } from "../services/mappers";
 
 export default function SettingsScreen() {
   const { dark, setDark } = useOutletContext();
-  const { user: profile, setUser, updateProfile, logout } = useAuth();
+  const { user: profile,  updateProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
   const prefs = { email: profile.pref_email, reports: profile.pref_reports, alerts: profile.pref_alerts };
-  const [oauthProviders, setOauthProviders] = useState({ google: false, github: false });
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    api.oauthProviders().then(setOauthProviders).catch(() => {});
-  }, []);
+  
 
   async function togglePref(key) {
     try {
@@ -154,13 +150,7 @@ export default function SettingsScreen() {
             value: dark,
             toggle: () => setDark(!dark),
           },
-          {
-            key: "email",
-            label: "Email Notifications",
-            desc: "Receive account emails (needs SendGrid on the server)",
-            value: prefs.email,
-            toggle: () => togglePref("pref_email"),
-          },
+          
           {
             key: "reports",
             label: "Monthly Reports",
@@ -298,73 +288,7 @@ export default function SettingsScreen() {
       </Card>
 
       {/* Connected Accounts */}
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Connected Accounts</h3>
-        <div className="space-y-3">
-          {[
-            {
-              name: "Google",
-              icon: Chrome,
-              email: profile.email,
-            },
-            {
-              name: "GitHub",
-              icon: Github,
-              email: profile.email,
-            },
-          ].map((a) => {
-            const provider = a.name.toLowerCase();
-            const isConnected = profile.oauth_provider === provider;
-            return (
-              <div
-                key={a.name}
-                className="flex items-center justify-between p-4 rounded-xl border border-border"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                    <a.icon size={18} className="text-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{isConnected ? a.email : "Not connected"}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (isConnected) {
-                      try {
-                        setUser(toProfile(await api.unlinkOAuth()));
-                        showToast(`${a.name} disconnected successfully!`);
-                      } catch (err) {
-                        showToast(err.message, "error");
-                      }
-                    } else if (oauthProviders[provider]) {
-                      // Signing in with the provider links it to this email address.
-                      window.location.href = api.oauthLoginUrl(provider);
-                    } else {
-                      showToast(`${a.name} sign-in is not configured on the server yet.`, "error");
-                    }
-                  }}
-                  className="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={
-                    isConnected
-                      ? {
-                          border: "1px solid var(--border)",
-                          color: "var(--muted-foreground)",
-                        }
-                      : {
-                          background: "linear-gradient(135deg, #2E93C7, #0D6D91)",
-                          color: "#fff",
-                        }
-                  }
-                >
-                  {isConnected ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+      
 
       {/* Help & feedback (shows up in the admin Feedback / Reported Issues tabs) */}
       <HelpFeedbackCard onDone={(msg) => showToast(msg)} onError={(msg) => showToast(msg, "error")} />
