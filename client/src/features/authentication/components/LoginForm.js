@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -19,13 +20,13 @@ import CreateAccountModal from "./SignupForm";
 import AuthPanel from "./AuthPanel";
 import { ROLE_META } from "../../../data/constants";
 
-// ── Login ──────────────────────────────────────────────────────────
+// Demo login accounts
 export const DEMO_ROLES = [
   {
     role: "student",
     label: "Student",
     email: "john.doe@budgetbuddy.in",
-    
+    password: "budget2025",
     icon: GraduationCap,
     desc: "Basic access",
   },
@@ -33,7 +34,7 @@ export const DEMO_ROLES = [
     role: "premium",
     label: "Premium User",
     email: "premium@budgetbuddy.in",
-    
+    password: "premium123",
     icon: Crown,
     desc: "Full feature access",
   },
@@ -41,6 +42,7 @@ export const DEMO_ROLES = [
     role: "admin",
     label: "Admin",
     email: "admin@budgetbuddy.in",
+    password: "admin2026",
     icon: ShieldCheck,
     desc: "User management",
   },
@@ -50,6 +52,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
   const [selectedRole, setSelectedRole] = useState(null);
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -60,17 +63,31 @@ export default function LoginScreen() {
   const [showForgot, setShowForgot] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
-  const [oauthProviders, setOauthProviders] = useState({ google: false, github: false });
+  const [oauthProviders, setOauthProviders] = useState({
+    google: false,
+    github: false,
+  });
 
-  // Which social logins are configured on the server + errors coming back from OAuth.
+  // Check social login providers and handle OAuth errors
   useEffect(() => {
     api.oauthProviders().then(setOauthProviders).catch(() => {});
+
     const oauthError = searchParams.get("oauth_error");
-    if (oauthError === "suspended") setError("Your account has been suspended. Please contact support.");
-    else if (oauthError) setError("Social sign-in failed. Please try again or use your email and password.");
-    if (searchParams.get("signup")) setShowCreate(true);
+
+    if (oauthError === "suspended") {
+      setError("Your account has been suspended. Please contact support.");
+    } else if (oauthError) {
+      setError(
+        "Social sign-in failed. Please try again or use your email and password."
+      );
+    }
+
+    if (searchParams.get("signup")) {
+      setShowCreate(true);
+    }
   }, [searchParams]);
 
+  // Handle Google and GitHub login
   function socialLogin(provider) {
     if (!oauthProviders[provider]) {
       setError(
@@ -78,43 +95,66 @@ export default function LoginScreen() {
       );
       return;
     }
+
     window.location.href = api.oauthLoginUrl(provider);
   }
+
+  // Select a demo role and automatically fill its credentials
   function selectRole(r) {
     const demo = DEMO_ROLES.find((d) => d.role === r);
+
+    if (!demo) return;
+
     setSelectedRole(r);
     setEmail(demo.email);
-    setPwd("");
+    setPwd(demo.password);
     setError("");
   }
+
+  // Handle login
   function attempt(emailOverride, pwdOverride) {
     if (loading) return;
+
     const e = (emailOverride ?? email).trim().toLowerCase();
     const p = pwdOverride ?? pwd;
+
     setError("");
+
     if (!e) {
       setError("Please enter your email address.");
       return;
     }
+
     if (!/\S+@\S+\.\S+/.test(e)) {
       setError("Please enter a valid email address.");
       return;
     }
+
     if (!p) {
       setError("Please enter your password.");
       return;
     }
+
     setLoading(true);
+
     login(e, p, remember)
-      .then((me) => navigate(me.role === "admin" ? "/admin-dashboard" : "/", { replace: true }))
+      .then((me) =>
+        navigate(me.role === "admin" ? "/admin-dashboard" : "/", {
+          replace: true,
+        })
+      )
       .catch((err) => {
         setError(err.message);
         setLoading(false);
       });
   }
+
   return (
     <div className="min-h-screen flex">
-      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
+      {showForgot && (
+        <ForgotPasswordModal onClose={() => setShowForgot(false)} />
+      )}
+
       {showCreate && (
         <CreateAccountModal
           onClose={() => setShowCreate(false)}
@@ -136,11 +176,18 @@ export default function LoginScreen() {
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <Wallet size={20} className="text-primary" />
-            <span className="font-bold text-lg font-['Poppins'] text-foreground">BudgetBuddy</span>
+            <span className="font-bold text-lg font-['Poppins'] text-foreground">
+              BudgetBuddy
+            </span>
           </div>
 
-          <h1 className="text-3xl font-bold text-foreground font-['Poppins'] mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-6">Sign in to manage your money</p>
+          <h1 className="text-3xl font-bold text-foreground font-['Poppins'] mb-2">
+            Welcome back
+          </h1>
+
+          <p className="text-muted-foreground mb-6">
+            Sign in to manage your money
+          </p>
 
           {/* Role selector */}
           
@@ -220,6 +267,7 @@ export default function LoginScreen() {
           {createSuccess && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-green-200 bg-green-50">
               <CheckCircle size={14} className="text-green-500 shrink-0" />
+
               <p className="text-xs text-green-700 font-medium">
                 Account created! Sign in with your new credentials.
               </p>
@@ -229,18 +277,24 @@ export default function LoginScreen() {
           {error && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl mb-4 border border-red-200 bg-red-50">
               <AlertTriangle size={14} className="text-red-500 shrink-0" />
+
               <p className="text-xs text-red-600 font-medium">{error}</p>
             </div>
           )}
 
           <div className="space-y-4">
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Email address</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Email address
+              </label>
+
               <div className="relative">
                 <Mail
                   size={16}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
+
                 <input
                   value={email}
                   onChange={(e) => {
@@ -248,19 +302,26 @@ export default function LoginScreen() {
                     setError("");
                   }}
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${error && !email ? "border-red-300" : "border-border"}`}
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
+                    error && !email ? "border-red-300" : "border-border"
+                  }`}
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Password
+              </label>
+
               <div className="relative">
                 <Lock
                   size={16}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
+
                 <input
                   value={pwd}
                   onChange={(e) => {
@@ -269,9 +330,12 @@ export default function LoginScreen() {
                   }}
                   onKeyDown={(e) => e.key === "Enter" && attempt()}
                   type={showPwd ? "text" : "password"}
-                  className={`w-full pl-10 pr-10 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${error && !pwd ? "border-red-300" : "border-border"}`}
+                  className={`w-full pl-10 pr-10 py-3 rounded-xl border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition ${
+                    error && !pwd ? "border-red-300" : "border-border"
+                  }`}
                   placeholder="••••••••"
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPwd((v) => !v)}
@@ -282,18 +346,29 @@ export default function LoginScreen() {
               </div>
             </div>
 
+            {/* Remember me and forgot password */}
             <div className="flex items-center justify-between">
               <label
                 className="flex items-center gap-2 cursor-pointer"
                 onClick={() => setRemember((v) => !v)}
               >
                 <div
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${remember ? "bg-primary border-primary" : "border-border"}`}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                    remember
+                      ? "bg-primary border-primary"
+                      : "border-border"
+                  }`}
                 >
-                  {remember && <CheckCircle size={10} className="text-white" />}
+                  {remember && (
+                    <CheckCircle size={10} className="text-white" />
+                  )}
                 </div>
-                <span className="text-sm text-muted-foreground">Remember me</span>
+
+                <span className="text-sm text-muted-foreground">
+                  Remember me
+                </span>
               </label>
+
               <button
                 type="button"
                 onClick={() => setShowForgot(true)}
@@ -303,6 +378,7 @@ export default function LoginScreen() {
               </button>
             </div>
 
+            {/* Sign in */}
             <button
               onClick={() => attempt()}
               disabled={loading}
@@ -313,7 +389,11 @@ export default function LoginScreen() {
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <svg
+                    className="animate-spin w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -328,6 +408,7 @@ export default function LoginScreen() {
                       d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                     />
                   </svg>
+
                   Signing in...
                 </>
               ) : (
@@ -339,6 +420,7 @@ export default function LoginScreen() {
 
             
 
+            {/* Create account */}
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <button
